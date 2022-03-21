@@ -20,8 +20,9 @@ void md_i2c_init_clock(I2C_TypeDef *pI2Cx)
 	if(pI2Cx == I2C1)
 	{
 		RCC_CLOCK_ENABLE_I2C1();
-		RCC_RESET_I2C1();
-	}
+                SET_BIT(RCC->APB1RSTR, RCC_APB1RSTR_I2C1RST);
+                CLEAR_BIT(RCC->APB1RSTR, RCC_APB1RSTR_I2C1RST);
+        }
 
 	return;
 }

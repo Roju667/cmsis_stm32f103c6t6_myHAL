@@ -45,6 +45,7 @@
 									<listOptionValue builtIn="false" value="../Inc/CMSIS/Include"/>
 									<listOptionValue builtIn="false" value="../Inc/mydrivers/Inc"/>
 									<listOptionValue builtIn="false" value="../Inc/CMSIS/Device/ST/STM32F1xx/Include"/>
+									<listOptionValue builtIn="false" value="../Inc/examples/Inc"/>
 								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.724845945" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c"/>
 							</tool>
@@ -87,6 +88,7 @@
 									<listOptionValue builtIn="false" value="../Inc/CMSIS/Include"/>
 									<listOptionValue builtIn="false" value="../Inc/mydrivers/Inc"/>
 									<listOptionValue builtIn="false" value="../Inc/CMSIS/Device/ST/STM32F1xx/Include"/>
+									<listOptionValue builtIn="false" value="../Inc/examples/Inc"/>
 								</option>
 								<inputType id="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c.735045013" superClass="com.st.stm32cube.ide.mcu.gnu.managedbuild.tool.c.compiler.input.c"/>
 							</tool>

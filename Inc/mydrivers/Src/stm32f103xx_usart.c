@@ -19,13 +19,13 @@ void md_usart_init_clock(USART_TypeDef *pUSARTx)
 {
 	if(pUSARTx == USART1)
 	{
-		RCC_CLOCK_ENABLE_USART1();
-		RCC_RESET_USART1();
-	}else if(pUSARTx == USART2)
+          SET_BIT(RCC->APB2RSTR, RCC_APB2RSTR_USART1RST);
+          CLEAR_BIT(RCC->APB2RSTR, RCC_APB2RSTR_USART1RST);
+        }else if(pUSARTx == USART2)
 	{
-		RCC_CLOCK_ENABLE_USART2();
-		RCC_RESET_USART2();
-	}
+          SET_BIT(RCC->APB1RSTR, RCC_APB1RSTR_USART2RST);
+          CLEAR_BIT(RCC->APB1RSTR, RCC_APB1RSTR_USART2RST);
+        }
 	return;
 }
 
