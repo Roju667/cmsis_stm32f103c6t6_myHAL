@@ -1,3 +1,8 @@
+"./Inc/mydrivers/Src/stm32f103xx_can.o"
+"./Inc/mydrivers/Src/stm32f103xx_gpio.o"
+"./Inc/mydrivers/Src/stm32f103xx_i2c.o"
+"./Inc/mydrivers/Src/stm32f103xx_rcc.o"
+"./Inc/mydrivers/Src/stm32f103xx_usart.o"
 "./Src/main.o"
 "./Src/syscalls.o"
 "./Src/sysmem.o"
