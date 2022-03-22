@@ -20,6 +20,8 @@ typedef struct {
 
   uint32_t pclk2;
 
+  uint32_t adcclk;
+
 } rcc_clock_freqs_t;
 
 // @rcc_sysclk_source
@@ -34,13 +36,13 @@ typedef enum { RCC_PLL_SOURCE_HSI, RCC_PLL_SOURCE_HSE } rcc_pll_source_t;
 
 // @rcc_pll1_mul
 typedef enum {
-  RCC_PLL1_MUL_X4 = 2,
+  RCC_PLL1_MUL_X4 = 2U,
   RCC_PLL1_MUL_X5,
   RCC_PLL1_MUL_X6,
   RCC_PLL1_MUL_X7,
   RCC_PLL1_MUL_X8,
   RCC_PLL1_MUL_X9,
-  RCC_PLL1_MUL_X65 = 13
+  RCC_PLL1_MUL_X65 = 13U
 } rcc_pll1_mul_t;
 
 // @rcc_hse_div
@@ -127,6 +129,7 @@ void md_rcc_configure_prescalers(rcc_ahb_prescaler_t ahb_prescaler,
 uint32_t md_rcc_get_sysclk(void);
 uint32_t md_rcc_get_hclk(void);
 uint32_t md_rcc_get_pclk(uint8_t pclk_x);
+uint32_t md_rcc_get_adcclk(void);
 void md_rcc_get_frequencies(rcc_clock_freqs_t *p_clock_freqs);
 
 #endif /* MYDRIVERS_INC_STM32F103XX_RCC_H_ */

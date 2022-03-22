@@ -12,14 +12,14 @@
 #define LED1_GPIO_PIN GPIO_PIN_13
 
 void example_rcc_configure_pll(void) {
-  rcc_clock_freqs_t frequencies;
-  // configure maximum frequencies AHB = 72 Mhz, APB1 = 36Mhz, APB2 = 72Mhz, ADC
-  // = 14Mhz
+  rcc_clock_freqs_t frequencies = {0};
+
+  // configure frequencies
   md_rcc_configure_prescalers(RCC_AHB_PRESCALER_NODIV, RCC_APB_PRESCALER_DIV2,
                               RCC_APB_PRESCALER_NODIV, RCC_ADC_PRESCALER_DIV6);
 
   md_rcc_configure_sysclk(RCC_SYSCLK_SOURCE_PLL, RCC_PLL_SOURCE_HSE,
-                          RCC_PLL1_MUL_X9, RCC_HSE_DIV_NODIV);
+                          RCC_PLL1_MUL_X4, RCC_HSE_DIV_NODIV);
 
   md_rcc_get_frequencies(&frequencies);
 

@@ -21,6 +21,7 @@
 
 #include "gpio_example.h"
 #include "rcc_example.h"
+#include "usart_example.h"
 
 #if !defined(__SOFT_FP__) && defined(__ARM_FP)
   #warning "FPU is not initialized, but the project is compiling for an FPU. Please initialize the FPU before use."
@@ -30,7 +31,9 @@ int main(void)
 {
     /* Loop forever */
     // example_gpio_toggle_led();
-    example_rcc_configure_pll();
+    // example_rcc_configure_pll();
+	example_usart_configure_baud();
+
     for (;;)
       ;
 }

@@ -11,6 +11,7 @@ static uint16_t rcc_get_ahb_prescaler(void);
 static uint16_t rcc_get_apb_prescaler(uint8_t pclk);
 static uint8_t rcc_get_pll_multiplier(void);
 static uint32_t rcc_calculate_pll_sysclk(void);
+static uint8_t rcc_get_adc_prescaler(void);
 
 /*
  * Configure sysclk source and frequency (in case of using PLL)
@@ -66,9 +67,9 @@ void md_rcc_configure_sysclk(rcc_sysclk_source_t sysclk_source,
   // change sysclk source
   RCC->CFGR |= (sysclk_source << RCC_CFGR_SW_Pos);
 
-  // wait until sys clock is switched
-  //  while (!((RCC->CFGR >> 0x02U) & sysclk_source))
-  //    ;
+   //wait until sys clock is switched
+   while (!(RCC->CFGR & (sysclk_source << 2U)))
+      ;
 
   return;
 }
@@ -145,6 +146,18 @@ uint32_t md_rcc_get_pclk(uint8_t pclk_x) {
 }
 
 /*
+ * Calculate adc clock frequency
+ * @param[void]
+ * @return - adcclk frequency
+ */
+uint32_t md_rcc_get_adcclk(void)
+{
+	uint32_t pclk2 = md_rcc_get_pclk(2);
+	uint8_t adc_prescaler = rcc_get_adc_prescaler();
+	return pclk2/adc_prescaler;
+}
+
+/*
  * Save all the clock frequencies in clock_freqs struct
  * @param[*p_clock_freqs] - pointer to frequencies struct
  * @return - void
@@ -154,9 +167,11 @@ void md_rcc_get_frequencies(rcc_clock_freqs_t *p_clock_freqs) {
   p_clock_freqs->hclk = md_rcc_get_hclk();
   p_clock_freqs->pclk1 = md_rcc_get_pclk(1);
   p_clock_freqs->pclk2 = md_rcc_get_pclk(2);
+  p_clock_freqs->adcclk = md_rcc_get_adcclk();
 
   return;
 }
+
 
 /*
  * Change bit value from ahb prescaler register to uint number
@@ -308,4 +323,32 @@ static uint32_t rcc_calculate_pll_sysclk(void) {
   }
 
   return sysclk_value;
+}
+
+/*
+ * Change bit value of adc prescaler to uint value
+ * @param[void]
+ * @return - adc prescaler value
+ */
+static uint8_t rcc_get_adc_prescaler(void)
+{
+	uint8_t bitvalue = (RCC->CFGR >> RCC_CFGR_ADCPRE_Pos) & 0x03;
+
+	  switch (bitvalue) {
+	    case (RCC_ADC_PRESCALER_DIV2):
+	      return 2;
+
+	    case (RCC_ADC_PRESCALER_DIV4):
+	      return 4;
+
+	    case (RCC_ADC_PRESCALER_DIV6):
+	      return 6;
+
+	    case (RCC_ADC_PRESCALER_DIV8):
+	      return 8;
+
+	  }
+
+	  return 0;
+
 }
