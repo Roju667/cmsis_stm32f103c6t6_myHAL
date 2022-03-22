@@ -8,5 +8,6 @@
 #ifndef MYDRIVERS_INC_STM32F103XX_MYDRIVER_H_
 #define MYDRIVERS_INC_STM32F103XX_MYDRIVER_H_
 
+#define __weak __attribute__((weak))
 
 #endif /* MYDRIVERS_INC_STM32F103XX_MYDRIVER_H_ */

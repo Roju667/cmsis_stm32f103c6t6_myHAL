@@ -27,11 +27,15 @@ void example_usart_configure_baud(void)
 
 	  md_usart_init_gpio(&husart1);
 
-	  md_usart_init_basic(&husart1, USART_WORD_LENGHT_8BIT, USART_STOP_BITS_1, 115200);
+          md_usart_init_basic(&husart1, USART_WORD_LENGHT_8BIT,
+                              USART_STOP_BITS_1, 9600);
+
+          uint8_t databuffer[16] = "Test 123123 \n\r";
 
 	while(1)
 	{
-		example_gpio_toggle_led();
-	}
+          example_heart_beat();
+          md_usart_tx_polling(&husart1, databuffer, 16, 10000);
+        }
 
 }
