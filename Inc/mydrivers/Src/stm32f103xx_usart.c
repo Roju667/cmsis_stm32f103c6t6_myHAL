@@ -6,7 +6,6 @@
  */
 
 #include "stm32f103xx_usart.h"
-
 #include "stm32f103xx_gpio.h"
 #include "stm32f103xx_mydriver.h"
 #include "stm32f103xx_rcc.h"
@@ -25,7 +24,7 @@ usart_handle_t husart2;
 #endif // MD_USING_USART2
 
 /*
- * Init handler adresses
+ * Init handler structures
  * @param[void]
  * @return - void
  */
@@ -73,7 +72,7 @@ void md_usart_init_clock(usart_handle_t *p_hUSARTx)
 }
 
 /*
- * Init gpio pins for usart
+ * Init gpio pins for usart - make sure that GPIO clock is enabled before
  * @param[*pUSARTx] - usartx base address
  * @return - void
  */
@@ -81,13 +80,10 @@ void md_usart_init_gpio(usart_handle_t *p_hUSARTx)
 {
   if (p_hUSARTx->p_USARTx == USART1)
     {
-      // init clock
-      md_gpio_init_clock(GPIOA);
 
       // tx - PA9 / REMAP : PB6
       md_gpio_configure_output(GPIOA, GPIO_PIN_9, GPIO_SPEED_50MHZ,
                                GPIO_OUTPUT_AF_PP);
-
       // rx - PA10 / REMAP : PB7
       md_gpio_configure_input(GPIOA, GPIO_PIN_10, GPIO_INPUT_PULLUP);
 
@@ -104,13 +100,10 @@ void md_usart_init_gpio(usart_handle_t *p_hUSARTx)
     }
   else if (p_hUSARTx->p_USARTx == USART2)
     {
-      // init clock
-      md_gpio_init_clock(GPIOA);
 
       // tx - PA2
       md_gpio_configure_output(GPIOA, GPIO_PIN_2, GPIO_SPEED_50MHZ,
                                GPIO_OUTPUT_AF_PP);
-
       // rx - PA3
       md_gpio_configure_input(GPIOA, GPIO_PIN_3, GPIO_INPUT_PULLUP);
 
@@ -189,7 +182,7 @@ void md_usart_init_basic(usart_handle_t *p_hUSARTx,
                          usart_stop_bits_t stop_bits, uint32_t baud_rate)
 {
   // Enable Usart
-  p_hUSARTx->p_USARTx->CR1 |= USART_CR1_UE;
+  SET_BIT(p_hUSARTx->p_USARTx->CR1, USART_CR1_UE);
 
   // Define word lenght
   p_hUSARTx->p_USARTx->CR1 |= (word_lenght << USART_CR1_M_Pos);
@@ -221,11 +214,12 @@ usart_error_t md_usart_tx_polling(usart_handle_t *p_hUSARTx,
   // check if we are not doing anything else
   if (p_hUSARTx->usart_tx_status == USART_TX_IDLE)
     {
-      // enable transmitter
-      p_hUSARTx->p_USARTx->CR1 |= USART_CR1_TE;
 
       // change usart tx status
       p_hUSARTx->usart_tx_status = USART_TX_POLLING;
+
+      // enable transmitter
+      SET_BIT(p_hUSARTx->p_USARTx->CR1, USART_CR1_TE);
 
       while (bytes_to_send != 0)
         {
@@ -282,21 +276,47 @@ usart_error_t md_usart_tx_polling(usart_handle_t *p_hUSARTx,
 usart_error_t md_usart_tx_irq(usart_handle_t *p_hUSARTx, uint8_t *p_data_buffer,
                               uint16_t lenght, uint32_t timeout_ms)
 {
-
+  uint32_t time_tick;
   // check if we are not doing anything else
   if (p_hUSARTx->usart_tx_status == USART_TX_IDLE)
     {
       // init buffer data
       p_hUSARTx->tx_buffer_len = lenght;
       p_hUSARTx->tx_buffer_count = 0;
+      p_hUSARTx->p_tx_buffer = p_data_buffer;
 
       // enable transmitter
-      p_hUSARTx->p_USARTx->CR1 |= USART_CR1_TE;
+      SET_BIT(p_hUSARTx->p_USARTx->CR1, USART_CR1_TE);
 
       p_hUSARTx->usart_tx_status = USART_TX_IRQ;
+
+      // wait until TDR register is empty
+      time_tick = md_systick_get_tick();
+      while (!(p_hUSARTx->p_USARTx->SR & USART_SR_TXE))
+        {
+          if ((md_systick_get_tick() - time_tick) > timeout_ms)
+            {
+              p_hUSARTx->usart_error = USART_ERR_TIMEOUT_TXE;
+              p_hUSARTx->usart_tx_status = USART_TX_IDLE;
+              return USART_ERR_TIMEOUT_TXE;
+            }
+        }
+
+      // enable irq flags
+      SET_BIT(p_hUSARTx->p_USARTx->CR1, USART_CR1_TXEIE);
+      SET_BIT(p_hUSARTx->p_USARTx->CR1, USART_CR1_TCIE);
+
+      return USART_ERR_NOERR;
     }
+  else if (p_hUSARTx->usart_tx_status == USART_TX_IRQ)
+    {
+      // if another irq transfer is already on
+      return USART_ERR_IRQ_BUSY;
+    }
+
   else
     {
+      // if different transfer is ongoing (DMA/Polling}
       p_hUSARTx->usart_error = USART_ERR_TX_COLLISION;
       return USART_ERR_TX_COLLISION;
     }
@@ -308,42 +328,101 @@ usart_error_t md_usart_tx_irq(usart_handle_t *p_hUSARTx, uint8_t *p_data_buffer,
  * @param[prio] - priority
  * @return - void
  */
-void ms_usart_enable_irq(usart_handle_t *p_hUSARTx, uint8_t prio)
+void md_usart_enable_irq(usart_handle_t *p_hUSARTx, uint8_t prio)
 {
   if (p_hUSARTx->p_USARTx == USART1)
     {
-      NVIC_SetPriority(prio);
+      NVIC_SetPriority(USART1_IRQn, prio);
       NVIC_EnableIRQ(USART1_IRQn);
     }
   else if (p_hUSARTx->p_USARTx == USART2)
     {
-      NVIC_SetPriority(prio);
+      NVIC_SetPriority(USART2_IRQn, prio);
       NVIC_EnableIRQ(USART2_IRQn);
     }
 }
 
-__weak void md_usart_txe_empty_callback(usart_handle_t *p_hUSARTx) {}
+/*
+ * user function to be called before txe system function
+ * @param[*pUSARTx] - usart strucut handle
+ * @return - void
+ */
+__weak void md_usart_txe_callback(usart_handle_t *p_hUSARTx) {}
 
-__weak void md_usart_tx_done_callback(usart_handle_t *p_hUSARTx) {}
+/*
+ * user function to be called before tc system function
+ * @param[*pUSARTx] - usart strucut handle
+ * @return - void
+ */
+__weak void md_usart_tc_callback(usart_handle_t *p_hUSARTx) {}
 
-static void usart_txe_empty_callback(usart_handle_t *p_hUSARTx) {}
-
-static void md_usart_main_callback(usart_handle_t *p_hUSARTx)
+/*
+ * if irq mode is started this function will put new bytes in DR register to
+ * send a whole message
+ * @param[*pUSARTx] - usart strucut handle
+ * @return - void
+ */
+static void usart_txe_callback(usart_handle_t *p_hUSARTx)
 {
-  // transmit register empty
+
+  if (p_hUSARTx->tx_buffer_count < p_hUSARTx->tx_buffer_len)
+    {
+      p_hUSARTx->p_USARTx->DR =
+          p_hUSARTx->p_tx_buffer[p_hUSARTx->tx_buffer_count];
+      p_hUSARTx->tx_buffer_count++;
+    }
+  else
+    {
+      CLEAR_BIT(p_hUSARTx->p_USARTx->CR1, USART_CR1_TXEIE);
+      p_hUSARTx->usart_tx_status = USART_TX_IDLE;
+    }
+
+  return;
+}
+
+/*
+ * this function is called by IRQ handle and decides which irq type occured
+ * each irq has system function and user defined function that can be
+ * implemented inside
+ * @param[*p_hUSARTx] - usart struct handle
+ * @return - void
+ */
+static void usart_main_callback(usart_handle_t *p_hUSARTx)
+{
+  // TXE callback
   if (p_hUSARTx->p_USARTx->SR & USART_SR_TXE)
     {
-      // user function
+      if (p_hUSARTx->usart_tx_status == USART_TX_IRQ)
+        {
+          // user function
+          md_usart_txe_callback(p_hUSARTx);
+          // system function
+          usart_txe_callback(p_hUSARTx);
+        }
     }
+
+  // TC callback
+  if (p_hUSARTx->p_USARTx->SR & USART_SR_TC)
+    {
+      if (p_hUSARTx->tx_buffer_count == p_hUSARTx->tx_buffer_len)
+        {
+          // user function
+          md_usart_tc_callback(p_hUSARTx);
+          CLEAR_BIT(p_hUSARTx->p_USARTx->CR1, USART_CR1_TCIE);
+        }
+      CLEAR_BIT(p_hUSARTx->p_USARTx->CR1, USART_SR_TC);
+    }
+
+  return;
 }
 
 // Vector table handlers for usart
 #if MD_USING_USART1
-void USART1_IRQHandler(void) { md_usart_main_callback(&husart1); }
+void USART1_IRQHandler(void) { usart_main_callback(&husart1); }
 #endif // MD_USING_USART1
 
 #if MD_USING_USART2
-void USART2_IRQHandler(void) { md_usart_main_callback(&husart2); }
+void USART2_IRQHandler(void) { usart_main_callback(&husart2); }
 #endif // MD_USING_USART1
 
 #endif // MD_ENABLE_USART

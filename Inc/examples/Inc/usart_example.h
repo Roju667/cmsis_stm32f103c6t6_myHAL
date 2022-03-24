@@ -9,5 +9,8 @@
 #define EXAMPLES_INC_USART_EXAMPLE_H_
 
 void example_usart_configure_baud(void);
+void example_usart_send_irq(void);
+void example_usart_send_irq_2usarts(void);
+void example_usart_send_polling_2usarts(void);
 
 #endif /* EXAMPLES_INC_USART_EXAMPLE_H_ */

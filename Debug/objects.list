@@ -1,3 +1,4 @@
+"./Inc/examples/Src/can_example.o"
 "./Inc/examples/Src/gpio_example.o"
 "./Inc/examples/Src/rcc_example.o"
 "./Inc/examples/Src/usart_example.o"

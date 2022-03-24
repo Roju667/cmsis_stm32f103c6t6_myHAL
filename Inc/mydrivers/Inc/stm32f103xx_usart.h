@@ -13,7 +13,7 @@
 // defining those macros will allocate static data
 // for purpose of using DMA/IRQ
 #define MD_USING_USART1 1U
-#define MD_USING_USART2 0U
+#define MD_USING_USART2 1U
 
 #if (MD_USING_USART1 || MD_USING_USART2)
 #define MD_ENABLE_USART
@@ -43,7 +43,8 @@ typedef enum
   USART_ERR_NOERR,
   USART_ERR_TIMEOUT_TXE,
   USART_ERR_TIMEOUT_TC,
-  USART_ERR_TX_COLLISION
+  USART_ERR_TX_COLLISION,
+  USART_ERR_IRQ_BUSY
 } usart_error_t;
 
 // @usart_tx_status
@@ -70,6 +71,7 @@ typedef struct
   USART_TypeDef *p_USARTx;
   uint16_t tx_buffer_len;
   uint16_t tx_buffer_count;
+  uint8_t *p_tx_buffer;
   usart_error_t usart_error;
   usart_tx_status_t usart_tx_status;
   usart_rx_status_t usart_rx_status;
@@ -92,9 +94,17 @@ void md_usart_init_basic(usart_handle_t *p_hUSARTx,
                          usart_word_lenght_t word_lenght,
                          usart_stop_bits_t stop_bits, uint32_t baud_rate);
 
+void md_usart_enable_irq(usart_handle_t *p_hUSARTx, uint8_t prio);
+
+void md_usart_txe_callback(usart_handle_t *p_hUSARTx);
+void md_usart_tc_callback(usart_handle_t *p_hUSARTx);
+
 usart_error_t md_usart_tx_polling(usart_handle_t *p_hUSARTx,
                                   uint8_t *p_data_buffer, uint16_t lenght,
                                   uint32_t timeout_ms);
+
+usart_error_t md_usart_tx_irq(usart_handle_t *p_hUSARTx, uint8_t *p_data_buffer,
+                              uint16_t lenght, uint32_t timeout_ms);
 
 #endif // MD_ENABLE_USART
 
