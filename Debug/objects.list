@@ -2,6 +2,7 @@
 "./Inc/examples/Src/gpio_example.o"
 "./Inc/examples/Src/rcc_example.o"
 "./Inc/examples/Src/usart_example.o"
+"./Inc/mydrivers/Src/stm32f103xx.adc.o"
 "./Inc/mydrivers/Src/stm32f103xx_can.o"
 "./Inc/mydrivers/Src/stm32f103xx_gpio.o"
 "./Inc/mydrivers/Src/stm32f103xx_i2c.o"

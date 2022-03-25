@@ -22,6 +22,7 @@ static can_error_t can_enter_normal_mode(can_handle_t *p_hCANx,
                                          uint32_t timeout_ms);
 static can_error_t can_enter_sleep_mode(can_handle_t *p_hCANx,
                                         uint32_t timeout_ms);
+static can_mailbox_t can_get_empty_mailbox(can_handle_t *p_hCANx);
 
 /*
  * Init handler structures
@@ -60,12 +61,12 @@ void md_can_init_gpio(can_handle_t *p_hCANx)
 {
   if (p_hCANx->p_CANx == CAN1)
     {
-      // CAN RX PA11, REMAP : PB8
-      md_gpio_configure_output(GPIOA, GPIO_PIN_11, GPIO_SPEED_10MHZ,
+      // CAN TX PA12, REMAP : PB8
+      md_gpio_configure_output(GPIOA, GPIO_PIN_12, GPIO_SPEED_50MHZ,
                                GPIO_OUTPUT_AF_PP);
 
-      // CAN RX PA12, REMAP : PB9
-      md_gpio_configure_input(GPIOA, GPIO_PIN_12, GPIO_INPUT_PULLUP);
+      // CAN RX PA11, REMAP : PB9
+      md_gpio_configure_input(GPIOA, GPIO_PIN_11, GPIO_INPUT_FLOATING);
     }
   return;
 }
@@ -102,19 +103,15 @@ can_error_t md_can_change_op_mode(can_handle_t *p_hCANx, can_op_mode_t op_mode,
 /*
  * init time quanta for can - function must be used in init mode
  * @param[*p_hCANx] - @can_handler
- * @param[prescaler] - clock prescaler - 0-512
- * @param[quanta_ts1] - number of quanta for time segement 1 MAX 16 quanta
- * @can_time_quanta
- * @param[quanta_ts2] - number of quanta for time segement 2 MAX 8 quanta
- * @can_time_quanta
- * @param[quanta_sjw] - number of quanta for synchronization MAX 4 quanta
- * @can_time_quanta
+ * @param[quanta init] - init with values for time configuration
+ * presacler clock prescaler - 0-512
+ * quanta_ts1 - number of quanta for time segement 1 MAX 16 quanta
+ * @can_time_quanta quanta_ts2 - number of quanta for time segement 2 MAX 8
+ * quanta quanta_sjw - number of quanta for synchronization MAX 4 quanta
  * @return - can_error_t - can error status
  */
-can_error_t md_can_init_time_quanta(can_handle_t *p_hCANx, uint16_t prescaler,
-                                    can_time_quanta_t quanta_ts1,
-                                    can_time_quanta_t quanta_ts2,
-                                    can_time_quanta_t quanta_sjw)
+can_error_t md_can_init_time_quanta(can_handle_t *p_hCANx,
+                                    can_quanta_init_t quanta_init)
 {
   // check if init mode
   if (p_hCANx->op_mode != CAN_OPMODE_INIT)
@@ -123,25 +120,113 @@ can_error_t md_can_init_time_quanta(can_handle_t *p_hCANx, uint16_t prescaler,
     }
 
   // check if values are not exceeded
-  if (quanta_ts2 > CAN_TIME_QUANTA8 || quanta_sjw > CAN_TIME_QUANTA4)
+  if (quanta_init.quanta_ts2 > CAN_TIME_QUANTA8 ||
+      quanta_init.quanta_sjw > CAN_TIME_QUANTA4)
     {
       p_hCANx->can_error = CAN_ERR_INIT_QUANTA;
       return CAN_ERR_INIT_QUANTA;
     }
 
-  if (prescaler > 511)
+  if (quanta_init.prescaler > 511 || quanta_init.prescaler < 1)
     {
       p_hCANx->can_error = CAN_ERR_INIT_BAUD;
       return CAN_ERR_INIT_BAUD;
     }
 
+  p_hCANx->p_CANx->BTR &= ~(CAN_BTR_BRP_Msk);
+  p_hCANx->p_CANx->BTR &= ~(CAN_BTR_TS1_Msk);
+  p_hCANx->p_CANx->BTR &= ~(CAN_BTR_TS2_Msk);
+  p_hCANx->p_CANx->BTR &= ~(CAN_BTR_SJW_Msk);
+
   // init prescaler and quantas
-  p_hCANx->p_CANx->BTR |= (prescaler << CAN_BTR_BRP_Pos);
-  p_hCANx->p_CANx->BTR |= (quanta_ts1 << CAN_BTR_TS1_Pos);
-  p_hCANx->p_CANx->BTR |= (quanta_ts2 << CAN_BTR_TS2_Pos);
-  p_hCANx->p_CANx->BTR |= (quanta_sjw << CAN_BTR_SJW_Pos);
+  p_hCANx->p_CANx->BTR |= ((quanta_init.prescaler - 1) << CAN_BTR_BRP_Pos);
+  p_hCANx->p_CANx->BTR |= (quanta_init.quanta_ts1 << CAN_BTR_TS1_Pos);
+  p_hCANx->p_CANx->BTR |= (quanta_init.quanta_ts2 << CAN_BTR_TS2_Pos);
+  p_hCANx->p_CANx->BTR |= (quanta_init.quanta_sjw << CAN_BTR_SJW_Pos);
 
   p_hCANx->can_error = CAN_ERR_NOERR;
+  return CAN_ERR_NOERR;
+}
+
+/*
+ * init basic configuration for can bus
+ * @param[*p_hCANx] - @can_handler
+ * @param[basic_init] - @can_basic_init
+ * @return - can_error_t - can error status
+ */
+can_error_t md_can_init_basic(can_handle_t *p_hCANx,
+                              can_basic_init_t basic_init)
+{
+  // check if init mode
+  if (p_hCANx->op_mode != CAN_OPMODE_INIT)
+    {
+      return CAN_ERR_WRONG_MDOE;
+    }
+
+  // set or reset all the configuration flags
+  if (basic_init.debug_freeze == true)
+    {
+      SET_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_DBF);
+    }
+  else
+    {
+      CLEAR_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_DBF);
+    }
+
+  if (basic_init.time_triggered_comm == true)
+    {
+      SET_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_TTCM);
+    }
+  else
+    {
+      CLEAR_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_TTCM);
+    }
+
+  if (basic_init.auto_bus_off == true)
+    {
+      SET_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_ABOM);
+    }
+  else
+    {
+      CLEAR_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_ABOM);
+    }
+
+  if (basic_init.auto_wake_up == true)
+    {
+      SET_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_AWUM);
+    }
+  else
+    {
+      CLEAR_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_AWUM);
+    }
+
+  if (basic_init.auto_retransmit == true)
+    {
+      SET_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_NART);
+    }
+  else
+    {
+      CLEAR_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_NART);
+    }
+
+  if (basic_init.rx_fifo_lock == true)
+    {
+      SET_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_RFLM);
+    }
+  else
+    {
+      CLEAR_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_RFLM);
+    }
+
+  if (basic_init.tx_fifo_prio == true)
+    {
+      SET_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_TXFP);
+    }
+  else
+    {
+      CLEAR_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_TXFP);
+    }
+
   return CAN_ERR_NOERR;
 }
 
@@ -162,7 +247,7 @@ can_error_t md_can_enter_test_mode(can_handle_t *p_hCANx,
 
   switch (test_mode)
     {
-    case (CAN_TESTMODE_SLEEP):
+    case (CAN_TESTMODE_SILENT):
       SET_BIT(p_hCANx->p_CANx->BTR, CAN_BTR_SILM);
       CLEAR_BIT(p_hCANx->p_CANx->BTR, CAN_BTR_LBKM);
       break;
@@ -172,7 +257,7 @@ can_error_t md_can_enter_test_mode(can_handle_t *p_hCANx,
       CLEAR_BIT(p_hCANx->p_CANx->BTR, CAN_BTR_SILM);
       break;
 
-    case (CAM_TESTMODE_SLEEPLOOPBACK):
+    case (CAN_TESTMODE_SILENTLOOPBACK):
       SET_BIT(p_hCANx->p_CANx->BTR, CAN_BTR_LBKM);
       SET_BIT(p_hCANx->p_CANx->BTR, CAN_BTR_SILM);
       break;
@@ -181,41 +266,100 @@ can_error_t md_can_enter_test_mode(can_handle_t *p_hCANx,
       return CAN_ERR_SWITCH_MODE;
     }
 
-  p_hCANx->op_mode = p_hCANx->op_mode = CAN_OPMODE_TEST;
+  p_hCANx->op_mode = CAN_OPMODE_TEST;
   return CAN_ERR_NOERR;
 }
 
 /*
- * configure mailbox before sending can message
+ * write mailbox
  * @param[*p_hCANx] - @can_handler
- * @param[mailbox] - mailbox number @can_mailbox
- * @param[id] - 11 bit for stnd, 29 bits for extended
- * @param[can_id_extension_t] - standard/extended ID @can_id_extension
+ * @param[frame] - frame structure @can_frame
+ * @param[p_databuffer] - pointer to data buffer
+ * @param[p_mailbox_number] - pointer to variable that will hold mailbox number that were used
  * @return - can_error_t - can error status
  */
-can_error_t md_can_configure_mailbox_id(can_handle_t *p_hCANx,
-                                        can_mailbox_t mailbox, uin32_t id,
-                                        can_id_extension_t id_extension){
+can_error_t md_can_write_mailbox(can_handle_t *p_hCANx, can_frame_t frame,
+                                 uint8_t *p_databuffer, uint8_t *p_mailbox_number)
+{
+  uint8_t mailbox = can_get_empty_mailbox(p_hCANx);
 
-    p_hCANx->p_CANx->sTxMailBox[mailbox]->TIR
+  // check if there is an empty mailbox
+  if (mailbox == CAN_MAILBOX_NOMAILBOX)
+    {
+	  *p_mailbox_number = CAN_MAILBOX_NOMAILBOX;
+	  p_hCANx->can_error = CAN_ERR_TX_NO_MAILBOX;
+      return CAN_ERR_TX_NO_MAILBOX;
+    }
 
+  // check if maximum lenghts is not exceeded
+  if (frame.data_lenght > 8)
+    {
+	  p_hCANx->can_error = CAN_ERR_TX_DATA_EXCEEDED;
+      return CAN_ERR_TX_DATA_EXCEEDED;
+    }
+
+  // write id and choose standard/extended
+  if (frame.id_extended == false)
+    {
+      CLEAR_BIT(p_hCANx->p_CANx->sTxMailBox[mailbox].TIR, CAN_TI0R_IDE);
+      p_hCANx->p_CANx->sTxMailBox[mailbox].TIR &= ~(CAN_TI0R_STID_Msk);
+      p_hCANx->p_CANx->sTxMailBox[mailbox].TIR |=
+          ((frame.id & 0x07FF) << CAN_TI0R_STID_Pos);
+    }
+  else if (frame.id_extended == true)
+    {
+      SET_BIT(p_hCANx->p_CANx->sTxMailBox[mailbox].TIR, CAN_TI0R_IDE);
+      p_hCANx->p_CANx->sTxMailBox[mailbox].TIR &= ~(CAN_TI0R_EXID_Msk);
+      p_hCANx->p_CANx->sTxMailBox[mailbox].TIR |=
+          ((frame.id & 0x1FFFFFFF) << CAN_TI0R_EXID_Pos);
+    }
+
+  // set data lenght
+  p_hCANx->p_CANx->sTxMailBox[mailbox].TDTR &= ~(CAN_TDT0R_DLC_Msk);
+  p_hCANx->p_CANx->sTxMailBox[mailbox].TDTR |=
+      (frame.data_lenght << CAN_TDT0R_DLC_Pos);
+
+  // prepare remote or data msg
+  if(frame.remote == true)
+  {
+	  SET_BIT(p_hCANx->p_CANx->sTxMailBox[mailbox].TIR, CAN_TI0R_RTR);
+  }else
+  {
+	  CLEAR_BIT(p_hCANx->p_CANx->sTxMailBox[mailbox].TIR, CAN_TI0R_RTR);
+	  // clear data registers
+	  p_hCANx->p_CANx->sTxMailBox[mailbox].TDLR = 0;
+	  p_hCANx->p_CANx->sTxMailBox[mailbox].TDHR = 0;
+
+	  // write data to registers
+	  for (uint8_t i = 0; i < frame.data_lenght; i++)
+	    {
+	      if (i < 4)
+	        {
+	          p_hCANx->p_CANx->sTxMailBox[mailbox].TDLR |=
+	              (p_databuffer[i] << (i * 8));
+	        }
+	      else
+	        {
+	          p_hCANx->p_CANx->sTxMailBox[mailbox].TDHR |=
+	              (p_databuffer[i] << ((i % 4) * 8));
+	        }
+	    }
+  }
+
+  // request transmission
+  *p_mailbox_number = mailbox;
+  SET_BIT(p_hCANx->p_CANx->sTxMailBox[mailbox].TIR, CAN_TI0R_TXRQ);
+  p_hCANx->can_error = CAN_ERR_NOERR;
+  return CAN_ERR_NOERR;
 }
 
 /*
- * request message send on can bus
+ * read from fifo
  * @param[*p_hCANx] - @can_handler
- * @param[mailbox] - mailbox number @can_mailbox
- * @param[p_databuffer] - message buffer - max 8 bytes
- * @param[data_lenght] - max 8 bytes
- * @param[transmit] - message type - data/remote
+ * @param[timeout_ms] - timeout in miliseonds
  * @return - can_error_t - can error status
  */
-can_error_t
-    md_can_transmit_mailbox(can_handle_t *p_hCANx, can_mailbox_t mailbox,
-                            uint8_t *p_databuffer, uint8_t data_lenght,
-                            can_transmit_t transmit)
-{
-}
+can_error_t md_can_read_fifo(can_handle_t *p_hCANx) {}
 
 /*
  * enter init mode
@@ -338,6 +482,31 @@ static can_error_t can_enter_sleep_mode(can_handle_t *p_hCANx,
 
   p_hCANx->can_error = CAN_ERR_NOERR;
   return CAN_ERR_NOERR;
+}
+
+/*
+ * return mailbox number that can be used to send a new message
+ * @param[*p_hCANx] - @can_handler
+ * @return - mailbox number
+ */
+can_mailbox_t can_get_empty_mailbox(can_handle_t *p_hCANx)
+{
+  if (p_hCANx->p_CANx->TSR & CAN_TSR_TME0)
+    {
+      return CAN_MAILBOX0;
+    }
+  else if (p_hCANx->p_CANx->TSR & CAN_TSR_TME1)
+    {
+      return CAN_MAILBOX1;
+    }
+  else if (p_hCANx->p_CANx->TSR & CAN_TSR_TME2)
+    {
+      return CAN_MAILBOX2;
+    }
+  else
+    {
+      return CAN_MAILBOX_NOMAILBOX;
+    }
 }
 
 #endif // MD_ENABLE_CAN

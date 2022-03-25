@@ -8,6 +8,7 @@
 #ifndef MYDRIVERS_INC_STM32F103XX_CAN_H_
 #define MYDRIVERS_INC_STM32F103XX_CAN_H_
 
+#include "stdbool.h"
 #include "stm32f1xx.h"
 
 // defining those macros will allocate static data
@@ -38,7 +39,9 @@ typedef enum
   CAN_ERR_SWITCH_MODE,
   CAN_ERR_WRONG_MDOE,
   CAN_ERR_INIT_QUANTA,
-  CAN_ERR_INIT_BAUD
+  CAN_ERR_INIT_BAUD,
+  CAN_ERR_TX_DATA_EXCEEDED,
+  CAN_ERR_TX_NO_MAILBOX
 } can_error_t;
 
 // @can_time_quanta
@@ -65,9 +68,9 @@ typedef enum
 // @can_test_mode
 typedef enum
 {
-  CAN_TESTMODE_SLEEP,
+  CAN_TESTMODE_SILENT,
   CAN_TESTMODE_LOOPBACK,
-  CAM_TESTMODE_SLEEPLOOPBACK
+  CAN_TESTMODE_SILENTLOOPBACK
 } can_test_mode_t;
 
 // @can_mailbox
@@ -75,24 +78,46 @@ typedef enum
 {
   CAN_MAILBOX0,
   CAN_MAILBOX1,
-  CAN_MAILBOX2
+  CAN_MAILBOX2,
+  CAN_MAILBOX_NOMAILBOX
 } can_mailbox_t;
 
 // @can_id_extension
 typedef enum
 {
   CAN_ID_EXTENSION_STD,
-  CAN_ID_EXTENSIO_EXT
+  CAN_ID_EXTENSION_EXT
 } can_id_extension_t;
 
-// @can_transmit type
-typedef enum
+// @can_quanta_init
+typedef struct
 {
-  CAN_TRANSMIT_DATA,
-  CAN_TRANSMIT_REMOTE
-} can_transmit_t;
+  uint16_t prescaler;
+  can_time_quanta_t quanta_ts1;
+  can_time_quanta_t quanta_ts2;
+  can_time_quanta_t quanta_sjw;
+} can_quanta_init_t;
 
-// @can_
+// @can_basic_init
+typedef struct
+{
+  bool debug_freeze;
+  bool time_triggered_comm;
+  bool auto_bus_off;
+  bool auto_wake_up;
+  bool auto_retransmit;
+  bool rx_fifo_lock;
+  bool tx_fifo_prio;
+} can_basic_init_t;
+
+// @can_frame
+typedef struct
+{
+  uint32_t id;
+  uint8_t data_lenght;
+  bool id_extended;
+  bool remote;
+} can_frame_t;
 
 // @can_handler
 typedef struct
@@ -106,20 +131,24 @@ typedef struct
 extern can_handle_t hcan1;
 #endif // MD_USING_CAN1
 
+// init functions
 void md_can_init_handlers(void);
 void md_can_init_clock(can_handle_t *p_hCANx);
 void md_can_init_gpio(can_handle_t *p_hCANx);
-
+can_error_t md_can_init_time_quanta(can_handle_t *p_hCANx,
+                                    can_quanta_init_t quanta_init);
+can_error_t md_can_init_basic(can_handle_t *p_hCANx,
+                              can_basic_init_t basic_init);
+// mode functions
 can_error_t md_can_change_op_mode(can_handle_t *p_hCANx, can_op_mode_t op_mode,
                                   uint32_t timeout_ms);
-
-can_error_t md_can_init_time_quanta(can_handle_t *p_hCANx, uint16_t prescaler,
-                                    can_time_quanta_t quanta_ts1,
-                                    can_time_quanta_t quanta_ts2,
-                                    can_time_quanta_t quanta_sjw);
-
 can_error_t md_can_enter_test_mode(can_handle_t *p_hCANx,
                                    can_test_mode_t test_mode);
+
+// write to mailbox
+can_error_t md_can_write_mailbox(can_handle_t *p_hCANx, can_frame_t frame,
+                                 uint8_t *p_databuffer,
+                                 uint8_t *p_mailbox_number);
 
 #endif // MD_ENABLE_CAN CAN
 #endif /* MYDRIVERS_INC_STM32F103XX_CAN_H_ */
