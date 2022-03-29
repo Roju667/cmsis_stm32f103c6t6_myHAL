@@ -15,7 +15,6 @@
 void example_heart_beat(void)
 {
   // init LED
-  md_gpio_init_clock(GPIOC);
   md_gpio_configure_output(LED1_GPIO_PORT, LED1_GPIO_PIN, GPIO_SPEED_10MHZ,
                            GPIO_OUTPUT_PP);
 

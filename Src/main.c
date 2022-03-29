@@ -22,6 +22,7 @@
 #include "can_example.h"
 #include "gpio_example.h"
 #include "rcc_example.h"
+#include "spi_example.h"
 #include "usart_example.h"
 
 #if !defined(__SOFT_FP__) && defined(__ARM_FP)
@@ -40,8 +41,12 @@ int main(void)
   // example_usart_send_polling_2usarts();
   // example_usart_send_irq_2usarts();
 
-	/* CAN EXAMPLES */
-	example_can_init();
+  /* CAN EXAMPLES */
+  //	example_can_init();
+
+  /* SPI EXAMPLES */
+  //  example_spi_transfer_message();
+  example_spi_transfer_tft();
 
   for (;;)
     ;

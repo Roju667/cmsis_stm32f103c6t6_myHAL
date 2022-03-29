@@ -7,6 +7,7 @@
 
 #include "stm32f103xx_can.h"
 #include "stm32f103xx_gpio.h"
+#include "stm32f103xx_mydriver.h"
 #include "stm32f103xx_rcc.h"
 #include "stm32f103xx_systick.h"
 
@@ -23,52 +24,23 @@ static can_error_t can_enter_normal_mode(can_handle_t *p_hCANx,
 static can_error_t can_enter_sleep_mode(can_handle_t *p_hCANx,
                                         uint32_t timeout_ms);
 static can_mailbox_t can_get_empty_mailbox(can_handle_t *p_hCANx);
+static void can_init_handlers(void);
+static void can_init_clock(can_handle_t *p_hCANx);
+static void can_init_gpio(can_handle_t *p_hCANx);
+static void can_main_rx0_callback(void);
+static void can_main_rx1_callback(void);
+static void can_main_sce_callback(void);
 
 /*
- * Init handler structures
- * @param[void]
- * @return - void
- */
-void md_can_init_handlers(void)
-{
-  hcan1.p_CANx = CAN1;
-  hcan1.can_error = CAN_ERR_NOERR;
-  hcan1.op_mode = CAN_OPMODE_SLEEP;
-}
-
-/*
- * Starts clock for CAN and resets the peripheral
+ * Init handlers gpio and clock
  * @param[*p_hCANx] - can struct handler @can_handler
  * @return - void
  */
-void md_can_init_clock(can_handle_t *p_hCANx)
+void md_can_init(can_handle_t *p_hCANx)
 {
-  if (p_hCANx->p_CANx == CAN1)
-    {
-      RCC_CLOCK_ENABLE_CAN();
-      SET_BIT(RCC->APB1RSTR, RCC_APB1RSTR_CAN1RST);
-      CLEAR_BIT(RCC->APB1RSTR, RCC_APB1RSTR_CAN1RST);
-    }
-  return;
-}
-
-/*
- * Init gpio pins for can bus
- * @param[*p_hCANx] - can struct handler @can_handler
- * @return - void
- */
-void md_can_init_gpio(can_handle_t *p_hCANx)
-{
-  if (p_hCANx->p_CANx == CAN1)
-    {
-      // CAN TX PA12, REMAP : PB8
-      md_gpio_configure_output(GPIOA, GPIO_PIN_12, GPIO_SPEED_50MHZ,
-                               GPIO_OUTPUT_AF_PP);
-
-      // CAN RX PA11, REMAP : PB9
-      md_gpio_configure_input(GPIOA, GPIO_PIN_11, GPIO_INPUT_FLOATING);
-    }
-  return;
+  can_init_handlers();
+  can_init_clock(p_hCANx);
+  can_init_gpio(p_hCANx);
 }
 
 /*
@@ -274,27 +246,28 @@ can_error_t md_can_enter_test_mode(can_handle_t *p_hCANx,
  * write mailbox
  * @param[*p_hCANx] - @can_handler
  * @param[frame] - frame structure @can_frame
- * @param[p_databuffer] - pointer to data buffer
- * @param[p_mailbox_number] - pointer to variable that will hold mailbox number that were used
+ * @param[p_mailbox_number] - pointer to variable that will hold mailbox number
+ * that were used
  * @return - can_error_t - can error status
  */
 can_error_t md_can_write_mailbox(can_handle_t *p_hCANx, can_frame_t frame,
-                                 uint8_t *p_databuffer, uint8_t *p_mailbox_number)
+
+                                 uint8_t *p_mailbox_number)
 {
   uint8_t mailbox = can_get_empty_mailbox(p_hCANx);
 
   // check if there is an empty mailbox
   if (mailbox == CAN_MAILBOX_NOMAILBOX)
     {
-	  *p_mailbox_number = CAN_MAILBOX_NOMAILBOX;
-	  p_hCANx->can_error = CAN_ERR_TX_NO_MAILBOX;
+      *p_mailbox_number = CAN_MAILBOX_NOMAILBOX;
+      p_hCANx->can_error = CAN_ERR_TX_NO_MAILBOX;
       return CAN_ERR_TX_NO_MAILBOX;
     }
 
   // check if maximum lenghts is not exceeded
   if (frame.data_lenght > 8)
     {
-	  p_hCANx->can_error = CAN_ERR_TX_DATA_EXCEEDED;
+      p_hCANx->can_error = CAN_ERR_TX_DATA_EXCEEDED;
       return CAN_ERR_TX_DATA_EXCEEDED;
     }
 
@@ -320,31 +293,32 @@ can_error_t md_can_write_mailbox(can_handle_t *p_hCANx, can_frame_t frame,
       (frame.data_lenght << CAN_TDT0R_DLC_Pos);
 
   // prepare remote or data msg
-  if(frame.remote == true)
-  {
-	  SET_BIT(p_hCANx->p_CANx->sTxMailBox[mailbox].TIR, CAN_TI0R_RTR);
-  }else
-  {
-	  CLEAR_BIT(p_hCANx->p_CANx->sTxMailBox[mailbox].TIR, CAN_TI0R_RTR);
-	  // clear data registers
-	  p_hCANx->p_CANx->sTxMailBox[mailbox].TDLR = 0;
-	  p_hCANx->p_CANx->sTxMailBox[mailbox].TDHR = 0;
+  if (frame.remote == true)
+    {
+      SET_BIT(p_hCANx->p_CANx->sTxMailBox[mailbox].TIR, CAN_TI0R_RTR);
+    }
+  else
+    {
+      CLEAR_BIT(p_hCANx->p_CANx->sTxMailBox[mailbox].TIR, CAN_TI0R_RTR);
+      // clear data registers
+      p_hCANx->p_CANx->sTxMailBox[mailbox].TDLR = 0;
+      p_hCANx->p_CANx->sTxMailBox[mailbox].TDHR = 0;
 
-	  // write data to registers
-	  for (uint8_t i = 0; i < frame.data_lenght; i++)
-	    {
-	      if (i < 4)
-	        {
-	          p_hCANx->p_CANx->sTxMailBox[mailbox].TDLR |=
-	              (p_databuffer[i] << (i * 8));
-	        }
-	      else
-	        {
-	          p_hCANx->p_CANx->sTxMailBox[mailbox].TDHR |=
-	              (p_databuffer[i] << ((i % 4) * 8));
-	        }
-	    }
-  }
+      // write data to registers
+      for (uint8_t i = 0; i < frame.data_lenght; i++)
+        {
+          if (i < 4)
+            {
+              p_hCANx->p_CANx->sTxMailBox[mailbox].TDLR |=
+                  (frame.p_data_buffer[i] << (i * 8));
+            }
+          else
+            {
+              p_hCANx->p_CANx->sTxMailBox[mailbox].TDHR |=
+                  (frame.p_data_buffer[i] << ((i % 4) * 8));
+            }
+        }
+    }
 
   // request transmission
   *p_mailbox_number = mailbox;
@@ -356,10 +330,258 @@ can_error_t md_can_write_mailbox(can_handle_t *p_hCANx, can_frame_t frame,
 /*
  * read from fifo
  * @param[*p_hCANx] - @can_handler
- * @param[timeout_ms] - timeout in miliseonds
+ * @param[*p_frame_buffer] - buffer to copy frame from fifo
+ * @param[*p_data_buffer] - pointer to data buffer
+ * @param[fifo_number] - 0 or 1
  * @return - can_error_t - can error status
  */
-can_error_t md_can_read_fifo(can_handle_t *p_hCANx) {}
+can_error_t md_can_read_fifo(can_handle_t *p_hCANx, can_frame_t *p_frame_buffer,
+                             uint8_t *p_data_buffer, uint8_t fifo_number)
+{
+  // assign pointer to frame struct
+  p_frame_buffer->p_data_buffer = p_data_buffer;
+
+  if (fifo_number == 0)
+    {
+      // check if fifo is not empty
+      if (!(p_hCANx->p_CANx->RF0R & CAN_RF0R_FMP0))
+        {
+          p_hCANx->can_error = CAN_ERR_FIFO_EMPTY;
+          return CAN_ERR_FIFO_EMPTY;
+        }
+
+      // read from fifo - frame info
+      SET_BIT(p_hCANx->p_CANx->RF0R, CAN_RF0R_RFOM0);
+      p_frame_buffer->remote =
+          (p_hCANx->p_CANx->sFIFOMailBox[0].RIR & CAN_RI0R_RTR);
+      p_frame_buffer->data_lenght =
+          (p_hCANx->p_CANx->sFIFOMailBox[0].RDTR & CAN_RDT0R_DLC);
+
+      if (p_hCANx->p_CANx->sFIFOMailBox[0].RIR & CAN_RI0R_IDE)
+        {
+          p_frame_buffer->id_extended = 1;
+          p_frame_buffer->id =
+              (p_hCANx->p_CANx->sFIFOMailBox[0].RIR >> CAN_RI0R_EXID_Pos);
+        }
+      else
+        {
+          p_frame_buffer->id_extended = 0;
+          p_frame_buffer->id =
+              (p_hCANx->p_CANx->sFIFOMailBox[0].RIR >> CAN_RI0R_STID_Pos);
+        }
+
+      // read form fifo - data info
+      for (uint8_t i = 0; i < 8; i++)
+        {
+          if (i < 4)
+            {
+              p_frame_buffer->p_data_buffer[i] =
+                  (p_hCANx->p_CANx->sFIFOMailBox[0].RDLR >> (i * 8));
+            }
+          else
+            {
+              p_frame_buffer->p_data_buffer[i] =
+                  (p_hCANx->p_CANx->sFIFOMailBox[0].RDHR >> ((i % 4) * 8));
+            }
+        }
+
+      // if using irq mode , activate irq for next message
+      if (p_hCANx->msg_pending_fifo0 == 1)
+        {
+          SET_BIT(CAN1->IER, CAN_IER_FMPIE0);
+          p_hCANx->msg_pending_fifo0 = 0;
+        }
+    }
+  else if (fifo_number == 1)
+    {
+      // check if fifo is not empty
+      if (!(p_hCANx->p_CANx->RF1R & CAN_RF1R_FMP1))
+        {
+          p_hCANx->can_error = CAN_ERR_FIFO_EMPTY;
+          return CAN_ERR_FIFO_EMPTY;
+        }
+
+      // read from fifo
+      SET_BIT(p_hCANx->p_CANx->RF1R, CAN_RF1R_RFOM1);
+
+      // read from fifo - frame info
+      SET_BIT(p_hCANx->p_CANx->RF1R, CAN_RF1R_RFOM1);
+      p_frame_buffer->remote =
+          (p_hCANx->p_CANx->sFIFOMailBox[1].RIR & CAN_RI1R_RTR);
+      p_frame_buffer->data_lenght =
+          (p_hCANx->p_CANx->sFIFOMailBox[1].RDTR & CAN_RDT1R_DLC);
+
+      if (p_hCANx->p_CANx->sFIFOMailBox[1].RIR & CAN_RI1R_IDE)
+        {
+          p_frame_buffer->id_extended = 1;
+          p_frame_buffer->id =
+              (p_hCANx->p_CANx->sFIFOMailBox[1].RIR >> CAN_RI1R_EXID_Pos);
+        }
+      else
+        {
+          p_frame_buffer->id_extended = 0;
+          p_frame_buffer->id =
+              (p_hCANx->p_CANx->sFIFOMailBox[1].RIR >> CAN_RI1R_STID_Pos);
+        }
+
+      // read form fifo - data info
+      for (uint8_t i = 0; i < 8; i++)
+        {
+          if (i < 4)
+            {
+              p_frame_buffer->p_data_buffer[i] =
+                  (p_hCANx->p_CANx->sFIFOMailBox[1].RDLR >> (i * 8));
+            }
+          else
+            {
+              p_frame_buffer->p_data_buffer[i] =
+                  (p_hCANx->p_CANx->sFIFOMailBox[1].RDHR >> ((i % 4) * 8));
+            }
+        }
+
+      // if using irq mode , activate irq for next message
+      if (p_hCANx->msg_pending_fifo1 == 1)
+        {
+          SET_BIT(CAN1->IER, CAN_IER_FMPIE1);
+          p_hCANx->msg_pending_fifo1 = 1;
+        }
+    }
+  p_hCANx->can_error = CAN_ERR_NOERR;
+  return CAN_ERR_NOERR;
+}
+
+/*
+ * init filter
+ * @param[*p_hCANx] - @can_handler
+ * @param[filter] - filter struct
+ * @return - can_error_t - can error status
+ */
+can_error_t md_can_init_filter(can_handle_t *p_hCANx, can_filter_t filter)
+{
+
+  if (filter.filter_number > 13)
+    {
+      p_hCANx->can_error = CAN_ERR_FILTER_NO_TOO_HIGH;
+      return CAN_ERR_FILTER_NO_TOO_HIGH;
+    }
+
+  // start init filter mode
+  SET_BIT(p_hCANx->p_CANx->FMR, CAN_FMR_FINIT);
+  // deactivate filter for configuration
+  CLEAR_BIT(p_hCANx->p_CANx->FA1R, (0x01 << filter.filter_number));
+
+  // assign filter to fifo
+  if (filter.assign_to_fifo1 == true)
+    {
+      SET_BIT(p_hCANx->p_CANx->FFA1R, (0x01 << filter.filter_number));
+    }
+  else
+    {
+      CLEAR_BIT(p_hCANx->p_CANx->FFA1R, (0x01 << filter.filter_number));
+    }
+
+  // select scale 16 bit (for standard) 32 bit (for extended id)
+  if (filter.scale_32bit == true)
+    {
+      SET_BIT(p_hCANx->p_CANx->FS1R, (0x01 << filter.filter_number));
+    }
+  else
+    {
+      CLEAR_BIT(p_hCANx->p_CANx->FS1R, (0x01 << filter.filter_number));
+    }
+
+  // select mode
+  if (filter.list_mode == true)
+    {
+      SET_BIT(p_hCANx->p_CANx->FS1R, (0x01 << filter.filter_number));
+    }
+  else
+    {
+      CLEAR_BIT(p_hCANx->p_CANx->FS1R, (0x01 << filter.filter_number));
+    }
+
+  // fill value registers
+  p_hCANx->p_CANx->sFilterRegister[filter.filter_number].FR1 =
+      filter.filter_id0;
+  p_hCANx->p_CANx->sFilterRegister[filter.filter_number].FR2 =
+      filter.filter_mask_or_id1;
+
+  // activate filter
+  SET_BIT(p_hCANx->p_CANx->FA1R, (0x01 << filter.filter_number));
+  // stop filter init mode
+  CLEAR_BIT(p_hCANx->p_CANx->FMR, CAN_FMR_FINIT);
+
+  return CAN_ERR_NOERR;
+}
+
+/*
+ * activate can interrupts - to activate all the irq user have to call this
+ * function 4 times
+ * @param[*p_hCANx] - @can_handler
+ * @param[irq_group] - @can_irq_group - can has 4 irq vectors, each can have
+ * different prio
+ * @param[irq_flags] - masks for bits that have to be set in IER register like
+ * CAN_IER_FMPIE0 | CAN_IER_FFIE0
+ * @param[irq_prio] - priority to certain irq
+ * @return - can_error_t - can error status
+ */
+void md_can_activate_irq(can_handle_t *p_hCANx, can_irq_group_t irq_group,
+                         uint32_t irq_flags, uint8_t irq_prio)
+{
+  // choose nvic group to activate + filter flags
+  switch (irq_group)
+    {
+    case (CAN_IRQ_GROUP_TX):
+      irq_flags &= 0x00000001;
+      NVIC_EnableIRQ(USB_HP_CAN1_TX_IRQn);
+      NVIC_SetPriority(USB_HP_CAN1_TX_IRQn, irq_prio);
+      break;
+
+    case (CAN_IRQ_GROUP_RX0):
+      irq_flags &= 0x0000000E;
+      NVIC_EnableIRQ(USB_LP_CAN1_RX0_IRQn);
+      NVIC_SetPriority(USB_LP_CAN1_RX0_IRQn, irq_prio);
+      break;
+
+    case (CAN_IRQ_GROUP_RX1):
+      irq_flags &= 0x00000070;
+      NVIC_EnableIRQ(CAN1_RX1_IRQn);
+      NVIC_SetPriority(CAN1_RX1_IRQn, irq_prio);
+      break;
+
+    case (CAN_IRQ_GROUP_SCE):
+      irq_flags &= 0x00038F00;
+      NVIC_EnableIRQ(CAN1_SCE_IRQn);
+      NVIC_SetPriority(CAN1_SCE_IRQn, irq_prio);
+      break;
+    }
+
+  // activate flags in IER register
+  p_hCANx->p_CANx->IER |= irq_flags;
+
+  return;
+}
+
+/*
+ * this callback is called when one of transfer mailboxes is empty
+ * and RQCPx bit is set
+ * @return - void
+ */
+__weak void md_can_mailbox_empty_callback(void) {}
+
+/*
+ * this callback is called when message is recieved and previous message was
+ * already read
+ * @return - void
+ */
+__weak void md_can_msg_pending_fifo0_callback(void) {}
+
+/*
+ * this callback is called when message is recieved and previous message was
+ * already read
+ * @return - void
+ */
+__weak void md_can_msg_pending_fifo1_callback(void) {}
 
 /*
  * enter init mode
@@ -489,7 +711,7 @@ static can_error_t can_enter_sleep_mode(can_handle_t *p_hCANx,
  * @param[*p_hCANx] - @can_handler
  * @return - mailbox number
  */
-can_mailbox_t can_get_empty_mailbox(can_handle_t *p_hCANx)
+static can_mailbox_t can_get_empty_mailbox(can_handle_t *p_hCANx)
 {
   if (p_hCANx->p_CANx->TSR & CAN_TSR_TME0)
     {
@@ -507,6 +729,139 @@ can_mailbox_t can_get_empty_mailbox(can_handle_t *p_hCANx)
     {
       return CAN_MAILBOX_NOMAILBOX;
     }
+}
+
+/*
+ * Init handler structures
+ * @param[void]
+ * @return - void
+ */
+static void can_init_handlers(void)
+{
+  hcan1.p_CANx = CAN1;
+  hcan1.can_error = CAN_ERR_NOERR;
+  hcan1.op_mode = CAN_OPMODE_SLEEP;
+}
+
+/*
+ * Starts clock for CAN and resets the peripheral
+ * @param[*p_hCANx] - can struct handler @can_handler
+ * @return - void
+ */
+static void can_init_clock(can_handle_t *p_hCANx)
+{
+  if (p_hCANx->p_CANx == CAN1)
+    {
+      if (RCC->APB1ENR & RCC_APB1ENR_CAN1EN)
+        return;
+
+      RCC_CLOCK_ENABLE_CAN();
+      SET_BIT(RCC->APB1RSTR, RCC_APB1RSTR_CAN1RST);
+      CLEAR_BIT(RCC->APB1RSTR, RCC_APB1RSTR_CAN1RST);
+    }
+  return;
+}
+
+/*
+ * Init gpio pins for can bus
+ * @param[*p_hCANx] - can struct handler @can_handler
+ * @return - void
+ */
+static void can_init_gpio(can_handle_t *p_hCANx)
+{
+  if (p_hCANx->p_CANx == CAN1)
+    {
+      // CAN TX PA12, REMAP : PB8
+      md_gpio_configure_output(GPIOA, GPIO_PIN_12, GPIO_SPEED_50MHZ,
+                               GPIO_OUTPUT_AF_PP);
+
+      // CAN RX PA11, REMAP : PB9
+      md_gpio_configure_input(GPIOA, GPIO_PIN_11, GPIO_INPUT_FLOATING);
+    }
+  return;
+}
+
+/*
+ * this callback is called when there is a new message/fifo is full/fifo
+ * @return - void
+ */
+static void can_main_rx0_callback(void)
+{
+  // this irq has to be cleared until message is not read from fifo
+  // then user has to enable it by himself or use function md_can_read_fifo
+  if ((CAN1->RF0R & 0x03) && hcan1.msg_pending_fifo0 == 0)
+    {
+      CLEAR_BIT(CAN1->IER, CAN_IER_FMPIE0);
+      hcan1.msg_pending_fifo0 = 1;
+      md_can_msg_pending_fifo0_callback();
+    }
+}
+/*
+ * this callback is called when there is a new message/fifo is full/fifo
+ * @return - void
+ */
+static void can_main_rx1_callback(void)
+{
+  // this irq has to be cleared until message is not read from fifo
+  // then user has to enable it by himself or use function md_can_read_fifo
+  if ((CAN1->RF1R & 0x03) && hcan1.msg_pending_fifo1 == 0)
+    {
+      CLEAR_BIT(CAN1->IER, CAN_IER_FMPIE1);
+      hcan1.msg_pending_fifo1 = 1;
+      md_can_msg_pending_fifo1_callback();
+    }
+}
+
+/*
+ * this callback is called on error/status change
+ * @return - void
+ */
+static void can_main_sce_callback(void) {}
+
+// Vector table handlers for can
+
+void USB_HP_CAN_TX_IRQHandler(void)
+{
+
+  // clear only 1 request complete bit - so if 3 mailboxes become empty
+  // there will be 3 interrupts
+  if (CAN1->TSR & (CAN_TSR_TME0 | CAN_TSR_RQCP0))
+    {
+      CAN1->TSR |= CAN_TSR_RQCP0;
+    }
+  else if (CAN1->TSR & (CAN_TSR_TME1 | CAN_TSR_RQCP1))
+    {
+      CAN1->TSR |= CAN_TSR_RQCP1;
+    }
+  else if (CAN1->TSR & (CAN_TSR_TME2 | CAN_TSR_RQCP2))
+    {
+      CAN1->TSR |= CAN_TSR_RQCP2;
+    }
+
+  // clear nvic pending flag
+  NVIC_ClearPendingIRQ(USB_HP_CAN1_TX_IRQn);
+
+  md_can_mailbox_empty_callback();
+}
+
+void USB_LP_CAN_RX0_IRQHandler(void)
+{
+
+  NVIC_ClearPendingIRQ(USB_LP_CAN1_RX0_IRQn);
+  can_main_rx0_callback();
+}
+
+void CAN_RX1_IRQHandler(void)
+{
+
+  NVIC_ClearPendingIRQ(CAN1_RX1_IRQn);
+  can_main_rx1_callback();
+}
+
+void CAN_SCE_IRQHandler(void)
+{
+  NVIC_ClearPendingIRQ(CAN1_SCE_IRQn);
+  can_main_sce_callback();
 }
 
 #endif // MD_ENABLE_CAN

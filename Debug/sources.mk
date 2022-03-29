@@ -20,6 +20,7 @@ OBJCOPY_BIN :=
 
 # Every subdirectory with source files must be described here
 SUBDIRS := \
+Inc/devices/Src \
 Inc/examples/Src \
 Inc/mydrivers/Src \
 Src \

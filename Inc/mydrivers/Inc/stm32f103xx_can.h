@@ -41,7 +41,9 @@ typedef enum
   CAN_ERR_INIT_QUANTA,
   CAN_ERR_INIT_BAUD,
   CAN_ERR_TX_DATA_EXCEEDED,
-  CAN_ERR_TX_NO_MAILBOX
+  CAN_ERR_TX_NO_MAILBOX,
+  CAN_ERR_FILTER_NO_TOO_HIGH,
+  CAN_ERR_FIFO_EMPTY
 } can_error_t;
 
 // @can_time_quanta
@@ -110,6 +112,15 @@ typedef struct
   bool tx_fifo_prio;
 } can_basic_init_t;
 
+// @can_irq_group
+typedef enum
+{
+  CAN_IRQ_GROUP_TX,
+  CAN_IRQ_GROUP_RX0,
+  CAN_IRQ_GROUP_RX1,
+  CAN_IRQ_GROUP_SCE
+} can_irq_group_t;
+
 // @can_frame
 typedef struct
 {
@@ -117,7 +128,20 @@ typedef struct
   uint8_t data_lenght;
   bool id_extended;
   bool remote;
+  uint8_t *p_data_buffer;
 } can_frame_t;
+
+// @can_filter
+typedef struct
+{
+  uint8_t filter_number;
+  bool list_mode;
+  bool scale_32bit;
+  bool assign_to_fifo1;
+  uint32_t filter_id0;
+  uint32_t filter_mask_or_id1;
+
+} can_filter_t;
 
 // @can_handler
 typedef struct
@@ -125,6 +149,9 @@ typedef struct
   CAN_TypeDef *p_CANx;
   can_error_t can_error;
   can_op_mode_t op_mode;
+  bool msg_pending_fifo0;
+  bool msg_pending_fifo1;
+
 } can_handle_t;
 
 #if MD_USING_CAN1
@@ -132,9 +159,7 @@ extern can_handle_t hcan1;
 #endif // MD_USING_CAN1
 
 // init functions
-void md_can_init_handlers(void);
-void md_can_init_clock(can_handle_t *p_hCANx);
-void md_can_init_gpio(can_handle_t *p_hCANx);
+void md_can_init(can_handle_t *p_hCANx);
 can_error_t md_can_init_time_quanta(can_handle_t *p_hCANx,
                                     can_quanta_init_t quanta_init);
 can_error_t md_can_init_basic(can_handle_t *p_hCANx,
@@ -147,8 +172,24 @@ can_error_t md_can_enter_test_mode(can_handle_t *p_hCANx,
 
 // write to mailbox
 can_error_t md_can_write_mailbox(can_handle_t *p_hCANx, can_frame_t frame,
-                                 uint8_t *p_databuffer,
+
                                  uint8_t *p_mailbox_number);
+
+// read from fifo
+can_error_t md_can_read_fifo(can_handle_t *p_hCANx, can_frame_t *p_frame_buffer,
+                             uint8_t *p_data_buffer, uint8_t fifo_number);
+
+// filter configuration
+can_error_t md_can_init_filter(can_handle_t *p_hCANx, can_filter_t filter);
+
+// irq functions
+void md_can_activate_irq(can_handle_t *p_hCANx, can_irq_group_t irq_group,
+                         uint32_t irq_flags, uint8_t irq_prio);
+
+// callbacks
+void md_can_mailbox_empty_callback(void);
+void md_can_msg_pending_fifo0_callback(void);
+void md_can_msg_pending_fifo1_callback(void);
 
 #endif // MD_ENABLE_CAN CAN
 #endif /* MYDRIVERS_INC_STM32F103XX_CAN_H_ */

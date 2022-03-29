@@ -8,6 +8,6 @@
 #ifndef EXAMPLES_INC_RCC_EXAMPLE_H_
 #define EXAMPLES_INC_RCC_EXAMPLE_H_
 
-void example_rcc_configure_pll(void);
+void example_rcc_configure_pll_32Mhz(void);
 
 #endif /* EXAMPLES_INC_RCC_EXAMPLE_H_ */
