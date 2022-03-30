@@ -33,7 +33,7 @@ void md_spi_init(spi_handle_t *p_hSPIx)
   spi_init_clock(p_hSPIx);
 }
 /*
- * Spi uart parameters
+ * Spi - init basic parameters
  * @param[*p_hSPIx] - spix base address
  * @param[spi_config] - basic configuration to work as master/slave full duplex
  * mode
@@ -171,6 +171,10 @@ spi_error_t md_spi_tx_polling(spi_handle_t *p_hSPIx, uint8_t *p_data_buffer,
       data_counter--;
     }
 
+  // wait for last byte transmission
+  while (p_hSPIx->p_SPIx->SR & SPI_SR_BSY)
+    ;
+
   p_hSPIx->spi_error = SPI_ERR_TIMEOUT_TXE;
   p_hSPIx->spi_tx_status = SPI_TX_IDLE;
   return SPI_ERR_NOERR;
@@ -189,7 +193,7 @@ static void spi_init_handlers(void)
   hspi1.spi_error = SPI_ERR_NOERR;
   hspi1.spi_rx_status = SPI_RX_IDLE;
   hspi1.spi_tx_status = SPI_TX_IDLE;
-#endif // MD_USING_USART1
+#endif // MD_USING_SPI1
 }
 
 /*
@@ -211,7 +215,7 @@ static void spi_init_clock(spi_handle_t *p_hSPIx)
 
 /*
  * Init gpio pins for spi - make sure that GPIO clock is enabled before
- * @param[*pUSARTx] - spix base address
+ * @param[*p_hSPIx] - spix base address
  * @return - void
  */
 static void spi_init_gpio(spi_handle_t *p_hSPIx, spi_config_t spi_config)

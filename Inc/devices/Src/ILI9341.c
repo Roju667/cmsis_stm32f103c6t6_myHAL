@@ -19,7 +19,7 @@ static void ILI9341_Delay(uint32_t ms) { md_systick_delay(ms); }
 static void ILI9341_SendTFT(uint8_t *Data, uint8_t Lenght)
 {
 
-  md_spi_tx_polling(Tft_hspi, Data, Lenght, 5000);
+  md_spi_tx_polling(Tft_hspi, Data, Lenght, 1000);
 }
 // Send single command
 static void ILI9341_SendCommand(uint8_t Command)

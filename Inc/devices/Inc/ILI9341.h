@@ -13,7 +13,7 @@
 
 // Pins
 #define ILI9341_USE_HW_RESET 1
-#define ILI9341_USE_CS 1
+#define ILI9341_USE_CS 0
 #define ILI9341_SPI_TIMEOUT 1000
 #define ILI9341_ROTATION 1 // 0 - 0 deg, 1 - 90 deg, 2 - 180 deg, 270 deg
 
@@ -21,10 +21,10 @@
 #define TFT_CS_Pin GPIO_PIN_11
 
 #define TFT_DC_GPIO_Port GPIOB
-#define TFT_DC_Pin GPIO_PIN_10
+#define TFT_DC_Pin GPIO_PIN_1
 
 #define TFT_RST_GPIO_Port GPIOB
-#define TFT_RST_Pin GPIO_PIN_1
+#define TFT_RST_Pin GPIO_PIN_10
 
 #define ILI9341_CS_LOW                                                         \
   md_gpio_write_pin(TFT_CS_GPIO_Port, TFT_CS_Pin, GPIO_PIN_RESET)

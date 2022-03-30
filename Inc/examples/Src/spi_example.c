@@ -57,6 +57,7 @@ void example_spi_transfer_message(void)
 
 void example_spi_transfer_tft(void)
 {
+  example_rcc_configure_pll_32Mhz();
   // init spi and sys tick
   md_systick_configure_ms();
 
@@ -69,23 +70,25 @@ void example_spi_transfer_tft(void)
   spi_config.full_duplex = true;
   spi_config.lsb_first = false;
   spi_config.master_mode = true;
-  spi_config.prescaler = SPI_PRESCALER_128; // 100kHz
+  spi_config.prescaler = SPI_PRESCALER_2; // 100kHz
   spi_config.software_nss_management = true;
 
   md_spi_init_basic(&hspi1, spi_config);
 
   // init gpio for tft
   //  DC
+  md_gpio_configure_output(GPIOB, GPIO_PIN_1, GPIO_SPEED_10MHZ, GPIO_OUTPUT_PP);
+  // CS
+  // RESET
   md_gpio_configure_output(GPIOB, GPIO_PIN_10, GPIO_SPEED_10MHZ,
                            GPIO_OUTPUT_PP);
-  // CS
-  md_gpio_configure_output(GPIOB, GPIO_PIN_11, GPIO_SPEED_10MHZ,
-                           GPIO_OUTPUT_PP);
-  // RESET
-  md_gpio_configure_output(GPIOB, GPIO_PIN_1, GPIO_SPEED_10MHZ, GPIO_OUTPUT_PP);
 
   ILI9341_Init(&hspi1);
   ILI9341_ClearDisplay(ILI9341_BLACK);
+
+  GFX_SetFont(font_8x5);
+  GFX_SetFontSize(2);
+  GFX_DrawString(10, 10, "Can message recieved", ILI9341_YELLOW);
 
   while (1)
     {
