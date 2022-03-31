@@ -23,3 +23,15 @@ void example_rcc_configure_pll_32Mhz(void)
                           RCC_PLL1_MUL_X4, RCC_HSE_DIV_NODIV);
   md_rcc_get_frequencies(&frequencies);
 }
+
+void example_rcc_configure_adc_clock_8Mhz(void)
+{
+  rcc_clock_freqs_t frequencies = {0};
+
+  // configure frequencies - no prescaler on buses + pll on mul 4x
+  md_rcc_configure_prescalers(RCC_AHB_PRESCALER_NODIV, RCC_APB_PRESCALER_NODIV,
+                              RCC_APB_PRESCALER_NODIV, RCC_ADC_PRESCALER_DIV4);
+  md_rcc_configure_sysclk(RCC_SYSCLK_SOURCE_PLL, RCC_PLL_SOURCE_HSE,
+                          RCC_PLL1_MUL_X4, RCC_HSE_DIV_NODIV);
+  md_rcc_get_frequencies(&frequencies);
+}

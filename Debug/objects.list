@@ -1,5 +1,6 @@
 "./Inc/devices/Src/GFX_COLOR.o"
 "./Inc/devices/Src/ILI9341.o"
+"./Inc/devices/Src/temt6000.o"
 "./Inc/examples/Src/adc_example.o"
 "./Inc/examples/Src/can_example.o"
 "./Inc/examples/Src/gpio_example.o"

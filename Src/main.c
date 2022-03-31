@@ -24,6 +24,7 @@
 #include "rcc_example.h"
 #include "spi_example.h"
 #include "usart_example.h"
+#include "adc_example.h"
 
 #if !defined(__SOFT_FP__) && defined(__ARM_FP)
 #warning                                                                       \
@@ -46,7 +47,10 @@ int main(void)
 
   /* SPI EXAMPLES */
   //  example_spi_transfer_message();
-  example_spi_transfer_tft();
+  //  example_spi_transfer_tft();
+
+	/* ADC EXAMPLES */
+	example_adc_init();
 
   for (;;)
     ;
