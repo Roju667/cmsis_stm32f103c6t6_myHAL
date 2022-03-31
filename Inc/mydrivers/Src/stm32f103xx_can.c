@@ -174,11 +174,11 @@ can_error_t md_can_init_basic(can_handle_t *p_hCANx,
 
   if (basic_init.auto_retransmit == true)
     {
-      SET_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_NART);
+      CLEAR_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_NART);
     }
   else
     {
-      CLEAR_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_NART);
+      SET_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_NART);
     }
 
   if (basic_init.rx_fifo_lock == true)
@@ -789,11 +789,9 @@ static void can_main_rx0_callback(void)
 {
   // this irq has to be cleared until message is not read from fifo
   // then user has to enable it by himself or use function md_can_read_fifo
-  if ((CAN1->RF0R & 0x03) && hcan1.msg_pending_fifo0 == 0)
+  if (CAN1->RF0R & CAN_RF0R_FULL0)
     {
       CLEAR_BIT(CAN1->IER, CAN_IER_FMPIE0);
-      hcan1.msg_pending_fifo0 = 1;
-      md_can_msg_pending_fifo0_callback();
     }
 }
 /*
@@ -804,11 +802,9 @@ static void can_main_rx1_callback(void)
 {
   // this irq has to be cleared until message is not read from fifo
   // then user has to enable it by himself or use function md_can_read_fifo
-  if ((CAN1->RF1R & 0x03) && hcan1.msg_pending_fifo1 == 0)
+  if (CAN1->RF1R & CAN_RF1R_FULL1)
     {
       CLEAR_BIT(CAN1->IER, CAN_IER_FMPIE1);
-      hcan1.msg_pending_fifo1 = 1;
-      md_can_msg_pending_fifo1_callback();
     }
 }
 

@@ -12,30 +12,17 @@
 #define LED1_GPIO_PORT GPIOC
 #define LED1_GPIO_PIN GPIO_PIN_13
 
-void example_heart_beat(void)
+void example_heart_beat_no_delay(uint32_t *tick_buffer, uint32_t freq)
 {
   // init LED
   md_gpio_configure_output(LED1_GPIO_PORT, LED1_GPIO_PIN, GPIO_SPEED_10MHZ,
                            GPIO_OUTPUT_PP);
 
-  // configure systick as 1ms
-  md_systick_configure_ms();
-
-  md_gpio_write_pin(LED1_GPIO_PORT, LED1_GPIO_PIN, GPIO_PIN_SET);
-
-  md_systick_delay(1000);
-
-  md_gpio_write_pin(LED1_GPIO_PORT, LED1_GPIO_PIN, GPIO_PIN_RESET);
-
-  md_systick_delay(1000);
-}
-
-void example_gpio_toggle_led(void)
-{
-
-  // toggle led every 1s
-  while (1)
+  if (md_systick_get_tick() - (*tick_buffer) > 500)
     {
-      example_heart_beat();
+      md_gpio_toggle_pin(LED1_GPIO_PORT, LED1_GPIO_PIN);
+      *tick_buffer = md_systick_get_tick();
     }
+
+  return;
 }

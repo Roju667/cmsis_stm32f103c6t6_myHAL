@@ -25,9 +25,9 @@ void temt6000_get_data(uint16_t analog_signal, temt6000_data_t *data)
 
 uint16_t temt6000_get_lux(uint16_t analog_signal)
 {
-  uint32_t milivolts = analog_signal * ((TEMT6000_REF_VOLTAGE * 1000) / 4096);
+  uint16_t milivolts = analog_signal * ((TEMT6000_REF_VOLTAGE * 1000) / 4096);
 
-  uint32_t microamps = ((1000 * milivolts) / TEMT6000_RESISTANCE);
+  uint16_t microamps = ((1000 * milivolts) / TEMT6000_RESISTANCE);
 
-  return 2 * microamps;
+  return (2 * microamps);
 }

@@ -8,6 +8,7 @@
 #include "gpio_example.h"
 #include "stm32f103xx_gpio.h"
 #include "stm32f103xx_rcc.h"
+#include "stm32f103xx_systick.h"
 #include "stm32f103xx_usart.h"
 
 volatile uint32_t transmission_counter_usart1, transmission_counter_usart2;
@@ -38,10 +39,11 @@ void example_usart_configure_baud(void)
   md_usart_init_basic(&husart1, USART_WORD_LENGHT_8BIT, USART_STOP_BITS_1,
                       9600);
 
-  // Loop toggle led
+  uint32_t time_tick_led = md_systick_get_tick();
+
   while (1)
     {
-      example_heart_beat();
+      example_heart_beat_no_delay(&time_tick_led, 500);
     }
 }
 
@@ -78,11 +80,12 @@ void example_usart_send_irq(void)
   md_usart_enable_irq(&husart1, 5);
 
   uint8_t databuffer[16] = "Test 123123 \n\r";
+  uint32_t time_tick_led = md_systick_get_tick();
 
   // Send messages by IRQ
   while (1)
     {
-      example_heart_beat();
+      example_heart_beat_no_delay(&time_tick_led, 500);
       md_usart_tx_irq(&husart1, databuffer, 16, 1000);
     }
 }

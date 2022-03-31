@@ -9,5 +9,7 @@
 #define EXAMPLES_INC_CAN_EXAMPLE_H_
 
 void example_can_init(void);
+void example_can_send_data(void);
+void example_can_recieve_data(void);
 
 #endif /* EXAMPLES_INC_CAN_EXAMPLE_H_ */

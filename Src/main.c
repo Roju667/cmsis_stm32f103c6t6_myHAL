@@ -19,12 +19,12 @@
 
 #include <stdint.h>
 
+#include "adc_example.h"
 #include "can_example.h"
 #include "gpio_example.h"
 #include "rcc_example.h"
 #include "spi_example.h"
 #include "usart_example.h"
-#include "adc_example.h"
 
 #if !defined(__SOFT_FP__) && defined(__ARM_FP)
 #warning                                                                       \
@@ -34,23 +34,25 @@
 int main(void)
 {
   /* Loop forever */
-  // example_gpio_toggle_led();
-  // example_rcc_configure_pll();
+//  example_gpio_toggle_led();
+//  example_rcc_configure_pll();
 
   /* USART EXAMPLES */
-  // example_usart_configure_baud()
-  // example_usart_send_polling_2usarts();
-  // example_usart_send_irq_2usarts();
+//  example_usart_configure_baud();
+//  example_usart_send_polling_2usarts();
+//  example_usart_send_irq_2usarts();
 
   /* CAN EXAMPLES */
-  //	example_can_init();
+//  example_can_init();
+//  example_can_send_data();
+  example_can_recieve_data();
 
   /* SPI EXAMPLES */
-  //  example_spi_transfer_message();
-  //  example_spi_transfer_tft();
+//  example_spi_transfer_message();
+//  example_spi_transfer_tft();
 
-	/* ADC EXAMPLES */
-	example_adc_init();
+  /* ADC EXAMPLES */
+//  example_adc_init();
 
   for (;;)
     ;

@@ -15,7 +15,7 @@
 
 #include "GFX_COLOR.h"
 #include "ILI9341.h"
-#include "fonts.h"
+//#include "fonts.h"
 
 #include "gpio_example.h"
 #include "rcc_example.h"
@@ -49,9 +49,11 @@ void example_spi_transfer_message(void)
 
   md_spi_tx_polling(&hspi1, data_buffer, 32, 1000);
 
+  uint32_t time_tick_led = md_systick_get_tick();
+
   while (1)
     {
-      example_heart_beat();
+      example_heart_beat_no_delay(&time_tick_led, 500);
     }
 }
 
@@ -86,13 +88,14 @@ void example_spi_transfer_tft(void)
   ILI9341_Init(&hspi1);
   ILI9341_ClearDisplay(ILI9341_BLACK);
 
-  GFX_SetFont(font_8x5);
+//  GFX_SetFont(font_8x5);
   GFX_SetFontSize(2);
   GFX_DrawString(10, 10, "Can message recieved", ILI9341_YELLOW);
+  uint32_t time_tick_led = md_systick_get_tick();
 
   while (1)
     {
-      example_heart_beat();
+      example_heart_beat_no_delay(&time_tick_led, 500);
     }
 }
 

@@ -16,7 +16,7 @@
 typedef struct
 {
   uint16_t milivolts;
-  uint32_t microamps;
+  uint16_t microamps;
   uint16_t lux;
 } temt6000_data_t;
 
