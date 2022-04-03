@@ -11,9 +11,9 @@
 #include "stm32f1xx.h"
 
 // @gpio_pin_number
-typedef enum
+typedef enum gpio_pin_number_t
 {
-  GPIO_PIN_0,
+  GPIO_PIN_0 = 0,
   GPIO_PIN_1,
   GPIO_PIN_2,
   GPIO_PIN_3,
@@ -32,7 +32,7 @@ typedef enum
 } gpio_pin_number_t;
 
 // @gpio_speed
-typedef enum
+typedef enum gpio_speed_t
 {
   GPIO_SPEED_10MHZ = 1,
   GPIO_SPEED_2MHZ,
@@ -40,27 +40,27 @@ typedef enum
 } gpio_speed_t;
 
 // @gpio_output_config
-typedef enum
+typedef enum gpio_ouput_config_t
 {
-  GPIO_OUTPUT_PP,
+  GPIO_OUTPUT_PP = 0,
   GPIO_OUTPUT_OD,
   GPIO_OUTPUT_AF_PP,
   GPIO_OUTPUT_AF_OD
 } gpio_ouput_config_t;
 
 // @gpio_input_config
-typedef enum
+typedef enum gpio_input_config
 {
-  GPIO_INPUT_ANALOG,
+  GPIO_INPUT_ANALOG = 0,
   GPIO_INPUT_FLOATING,
   GPIO_INPUT_PULLUP,
   GPIO_INPUT_PULLDOWN
 } gpio_input_config;
 
 // @gpio_exti_trigger
-typedef enum
+typedef enum gpio_exti_trigger
 {
-  GPIO_EXTI_RISING,
+  GPIO_EXTI_RISING = 0,
   GPIO_EXTI_FALLING,
   GPIO_EXTI_RISINGFALLING
 } gpio_exti_trigger;

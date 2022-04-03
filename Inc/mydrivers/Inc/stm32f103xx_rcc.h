@@ -11,7 +11,8 @@
 #include "stm32f1xx.h"
 
 // struct to save all the clock frequencies
-typedef struct {
+typedef struct rcc_clock_freqs_t
+{
   uint32_t sysclk;
 
   uint32_t hclk;
@@ -25,29 +26,36 @@ typedef struct {
 } rcc_clock_freqs_t;
 
 // @rcc_sysclk_source
-typedef enum {
-  RCC_SYSCLK_SOURCE_HSI,
+typedef enum rcc_sysclk_source_t
+{
+  RCC_SYSCLK_SOURCE_HSI = 0,
   RCC_SYSCLK_SOURCE_HSE,
   RCC_SYSCLK_SOURCE_PLL
 } rcc_sysclk_source_t;
 
 // @rcc_pll_source
-typedef enum { RCC_PLL_SOURCE_HSI, RCC_PLL_SOURCE_HSE } rcc_pll_source_t;
+typedef enum rcc_pll_source_t
+{
+  RCC_PLL_SOURCE_HSI = 0,
+  RCC_PLL_SOURCE_HSE
+} rcc_pll_source_t;
 
 // @rcc_pll1_mul
-typedef enum {
-  RCC_PLL1_MUL_X4 = 2U,
+typedef enum rcc_pll1_mul_t
+{
+  RCC_PLL1_MUL_X4 = 2,
   RCC_PLL1_MUL_X5,
   RCC_PLL1_MUL_X6,
   RCC_PLL1_MUL_X7,
   RCC_PLL1_MUL_X8,
   RCC_PLL1_MUL_X9,
-  RCC_PLL1_MUL_X65 = 13U
+  RCC_PLL1_MUL_X65 = 13
 } rcc_pll1_mul_t;
 
 // @rcc_hse_div
-typedef enum {
-  RCC_HSE_DIV_NODIV,
+typedef enum rcc_hse_div_t
+{
+  RCC_HSE_DIV_NODIV = 0,
   RCC_HSE_DIV_DIV2,
 } rcc_hse_div_t;
 
@@ -56,9 +64,10 @@ typedef enum {
 #define RCC_HSE_FREQUENCY 8000000U
 
 // @rcc_ahb_prescaler
-typedef enum {
-  RCC_AHB_PRESCALER_NODIV = 0U,
-  RCC_AHB_PRESCALER_DIV2 = 8U,
+typedef enum rcc_ahb_prescaler_t
+{
+  RCC_AHB_PRESCALER_NODIV = 0,
+  RCC_AHB_PRESCALER_DIV2 = 8,
   RCC_AHB_PRESCALER_DIV4,
   RCC_AHB_PRESCALER_DIV8,
   RCC_AHB_PRESCALER_DIV16,
@@ -69,16 +78,18 @@ typedef enum {
 } rcc_ahb_prescaler_t;
 
 // @rcc_apb_prescaler
-typedef enum {
-  RCC_APB_PRESCALER_NODIV = 0U,
-  RCC_APB_PRESCALER_DIV2 = 4U,
+typedef enum rcc_apb_prescaler_t
+{
+  RCC_APB_PRESCALER_NODIV = 0,
+  RCC_APB_PRESCALER_DIV2 = 4,
   RCC_APB_PRESCALER_DIV4,
   RCC_APB_PRESCALER_DIV8,
   RCC_APB_PRESCALER_DIV16,
 } rcc_apb_prescaler_t;
 
 // @rcc_adc_prescaler
-typedef enum {
+typedef enum rcc_adc_prescaler_t
+{
   RCC_ADC_PRESCALER_DIV2 = 0U,
   RCC_ADC_PRESCALER_DIV4,
   RCC_ADC_PRESCALER_DIV6,
@@ -128,7 +139,7 @@ void md_rcc_configure_prescalers(rcc_ahb_prescaler_t ahb_prescaler,
 
 uint32_t md_rcc_get_sysclk(void);
 uint32_t md_rcc_get_hclk(void);
-uint32_t md_rcc_get_pclk(uint8_t pclk_x);
+uint32_t md_rcc_get_pclk(uint32_t pclk_x);
 uint32_t md_rcc_get_adcclk(void);
 void md_rcc_get_frequencies(rcc_clock_freqs_t *p_clock_freqs);
 

@@ -20,7 +20,7 @@ spi_handle_t hspi1;
 
 static void spi_init_handlers(void);
 static void spi_init_clock(spi_handle_t *p_hSPIx);
-static void spi_init_gpio(spi_handle_t *p_hSPIx, spi_config_t spi_config);
+static void spi_init_gpio(spi_handle_t *p_hSPIx, spi_config_t *p_spi_config);
 
 /*
  * Init handlers gpio and clock
@@ -34,48 +34,29 @@ void md_spi_init(spi_handle_t *p_hSPIx)
 }
 /*
  * Spi - init basic parameters
- * @param[*p_hSPIx] - spix base address
- * @param[spi_config] - basic configuration to work as master/slave full duplex
- * mode
+ * @param[*p_hSPIx] - spix base address @spi_handler
+ * @param[*p_spi_config] - pointer to basic configuration struct @spi_config
  * @return - void
  */
-void md_spi_init_basic(spi_handle_t *p_hSPIx, spi_config_t spi_config)
+void md_spi_init_basic(spi_handle_t *p_hSPIx, spi_config_t *p_spi_config)
 {
   // init pins
-  spi_init_gpio(p_hSPIx, spi_config);
+  spi_init_gpio(p_hSPIx, p_spi_config);
 
   // clock phase
-  if (spi_config.clock_second_edge_capture == true)
-    {
-      SET_BIT(p_hSPIx->p_SPIx->CR1, SPI_CR1_CPHA);
-    }
-  else
-    {
-      CLEAR_BIT(p_hSPIx->p_SPIx->CR1, SPI_CR1_CPHA);
-    }
+  md_set_if_condition(p_spi_config->clock_second_edge_capture, &(p_hSPIx->p_SPIx->CR1),
+		  SPI_CR1_CPHA);
 
   // clock polarity
-  if (spi_config.clock_1_when_idle == true)
-    {
-      SET_BIT(p_hSPIx->p_SPIx->CR1, SPI_CR1_CPOL);
-    }
-  else
-    {
-      CLEAR_BIT(p_hSPIx->p_SPIx->CR1, SPI_CR1_CPOL);
-    }
+  md_set_if_condition(p_spi_config->clock_second_edge_capture, &(p_hSPIx->p_SPIx->CR1),
+		  SPI_CR1_CPOL);
 
   // data format
-  if (spi_config.data_format_16bit == true)
-    {
-      SET_BIT(p_hSPIx->p_SPIx->CR1, SPI_CR1_DFF);
-    }
-  else
-    {
-      CLEAR_BIT(p_hSPIx->p_SPIx->CR1, SPI_CR1_DFF);
-    }
+  md_set_if_condition(p_spi_config->data_format_16bit, &(p_hSPIx->p_SPIx->CR1),
+		  SPI_CR1_DFF);
 
   // full duplex
-  if (spi_config.full_duplex == true)
+  if (p_spi_config->full_duplex == true)
     {
       CLEAR_BIT(p_hSPIx->p_SPIx->CR1, SPI_CR1_RXONLY);
       CLEAR_BIT(p_hSPIx->p_SPIx->CR1, SPI_CR1_BIDIMODE);
@@ -86,17 +67,11 @@ void md_spi_init_basic(spi_handle_t *p_hSPIx, spi_config_t spi_config)
     }
 
   // lsb/msb first
-  if (spi_config.lsb_first == true)
-    {
-      SET_BIT(p_hSPIx->p_SPIx->CR1, SPI_CR1_LSBFIRST);
-    }
-  else
-    {
-      CLEAR_BIT(p_hSPIx->p_SPIx->CR1, SPI_CR1_LSBFIRST);
-    }
+  md_set_if_condition(p_spi_config->lsb_first, &(p_hSPIx->p_SPIx->CR1),
+		  SPI_CR1_LSBFIRST);
 
   // nss manangement
-  if (spi_config.software_nss_management)
+  if (p_spi_config->software_nss_management)
     {
       SET_BIT(p_hSPIx->p_SPIx->CR1, SPI_CR1_SSM);
       SET_BIT(p_hSPIx->p_SPIx->CR1, SPI_CR1_SSI);
@@ -107,18 +82,13 @@ void md_spi_init_basic(spi_handle_t *p_hSPIx, spi_config_t spi_config)
     }
 
   // master mode
-  if (spi_config.master_mode == true)
-    {
-      SET_BIT(p_hSPIx->p_SPIx->CR1, SPI_CR1_MSTR);
-    }
-  else
-    {
-      CLEAR_BIT(p_hSPIx->p_SPIx->CR1, SPI_CR1_MSTR);
-    }
+  md_set_if_condition(p_spi_config->master_mode, &(p_hSPIx->p_SPIx->CR1),
+		  SPI_CR1_MSTR);
+
 
   // prescaler
   p_hSPIx->p_SPIx->CR1 &= ~(SPI_CR1_BR_Msk);
-  p_hSPIx->p_SPIx->CR1 |= (spi_config.prescaler << SPI_CR1_BR_Pos);
+  p_hSPIx->p_SPIx->CR1 |= (p_spi_config->prescaler << SPI_CR1_BR_Pos);
 
   SET_BIT(p_hSPIx->p_SPIx->CR1, SPI_CR1_SPE);
 
@@ -134,10 +104,10 @@ void md_spi_init_basic(spi_handle_t *p_hSPIx, spi_config_t spi_config)
  * @return - void
  */
 spi_error_t md_spi_tx_polling(spi_handle_t *p_hSPIx, uint8_t *p_data_buffer,
-                              uint16_t data_lenght, uint32_t timeout_ms)
+		uint32_t data_lenght, uint32_t timeout_ms)
 {
-  uint32_t time_tick;
-  uint16_t data_counter = data_lenght;
+  uint32_t time_tick = 0;
+  uint32_t data_counter = data_lenght;
 
   // enable SPI
   SET_BIT(p_hSPIx->p_SPIx->CR1, SPI_CR1_SPE);
@@ -215,19 +185,20 @@ static void spi_init_clock(spi_handle_t *p_hSPIx)
 
 /*
  * Init gpio pins for spi - make sure that GPIO clock is enabled before
- * @param[*p_hSPIx] - spix base address
+ * @param[*p_hSPIx] - spix base address @spi_handler
+ * @param[*p_spi_config] - pointer to spi configuration structure @spi_handler
  * @return - void
  */
-static void spi_init_gpio(spi_handle_t *p_hSPIx, spi_config_t spi_config)
+static void spi_init_gpio(spi_handle_t *p_hSPIx, spi_config_t *p_spi_config)
 {
   // master mode
-  if (spi_config.master_mode == true)
+  if (p_spi_config->master_mode == true)
     {
       // SCK - PA5
       md_gpio_configure_output(GPIOA, GPIO_PIN_5, GPIO_SPEED_10MHZ,
                                GPIO_OUTPUT_AF_PP);
 
-      if (spi_config.full_duplex == true)
+      if (p_spi_config->full_duplex == true)
         {
           // MISO - PA6 // REMAP PB4
           md_gpio_configure_input(GPIOA, GPIO_PIN_6, GPIO_INPUT_PULLUP);
@@ -237,7 +208,7 @@ static void spi_init_gpio(spi_handle_t *p_hSPIx, spi_config_t spi_config)
       md_gpio_configure_output(GPIOA, GPIO_PIN_7, GPIO_SPEED_10MHZ,
                                GPIO_OUTPUT_AF_PP);
 
-      if (spi_config.software_nss_management == false)
+      if (p_spi_config->software_nss_management == false)
         {
           // NSS - PA4
           md_gpio_configure_output(GPIOA, GPIO_PIN_4, GPIO_SPEED_50MHZ,
@@ -250,7 +221,7 @@ static void spi_init_gpio(spi_handle_t *p_hSPIx, spi_config_t spi_config)
       // SCK - PA5
       md_gpio_configure_input(GPIOA, GPIO_PIN_5, GPIO_INPUT_FLOATING);
 
-      if (spi_config.full_duplex == true)
+      if (p_spi_config->full_duplex == true)
         {
           // MOSI PA7 // REMAP PB5
           md_gpio_configure_input(GPIOA, GPIO_PIN_7, GPIO_INPUT_PULLUP);
@@ -260,7 +231,7 @@ static void spi_init_gpio(spi_handle_t *p_hSPIx, spi_config_t spi_config)
       md_gpio_configure_output(GPIOA, GPIO_PIN_6, GPIO_SPEED_10MHZ,
                                GPIO_OUTPUT_AF_PP);
 
-      if (spi_config.software_nss_management == false)
+      if (p_spi_config->software_nss_management == false)
         {
           // NSS - PA4
           md_gpio_configure_input(GPIOA, GPIO_PIN_4, GPIO_INPUT_PULLUP);

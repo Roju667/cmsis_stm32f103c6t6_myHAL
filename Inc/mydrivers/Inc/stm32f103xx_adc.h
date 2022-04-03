@@ -22,16 +22,16 @@
 #ifdef MD_ENABLE_ADC
 
 // @adc_error
-typedef enum
+typedef enum adc_error_t
 {
-  ADC_ERR_NOERR
+  ADC_ERR_NOERR = 0
 
 } adc_error_t;
 
 // @adc_sample_time
-typedef enum
+typedef enum adc_sample_time_t
 {
-  ADC_SAMPLE_TIME_15,
+  ADC_SAMPLE_TIME_15 = 0,
   ADC_SAMPLE_TIME_75,
   ADC_SAMPLE_TIME_135,
   ADC_SAMPLE_TIME_285,
@@ -42,9 +42,9 @@ typedef enum
 } adc_sample_time_t;
 
 // @adc_trigger_injected
-typedef enum
+typedef enum adc_trigger_in_t
 {
-  ADC_TRIG_IN_TIM1TRGO,
+  ADC_TRIG_IN_TIM1TRGO = 0,
   ADC_TRIG_IN_TIM1CC4,
   ADC_TRIG_IN_TIM2TRGO,
   ADC_TRIG_IN_TIM2CC1,
@@ -56,9 +56,9 @@ typedef enum
 } adc_trigger_in_t;
 
 // @adc_trigger_regular
-typedef enum
+typedef enum adc_trigger_reg_t
 {
-  ADC_TRIG_REG_TIM1CC1,
+  ADC_TRIG_REG_TIM1CC1 = 0,
   ADC_TRIG_REG_TIM1CC2,
   ADC_TRIG_REG_TIM1CC3,
   ADC_TRIG_REG_TIM2CC2,
@@ -70,31 +70,30 @@ typedef enum
 } adc_trigger_reg_t;
 
 // @adc_analog_wdg
-typedef struct
+typedef struct adc_analog_wdg
 {
   bool watch_single_channel;
   bool watch_regular;
   bool watch_injected;
-  uint8_t channel_number;
-  uint16_t high_threshold;
-  uint16_t low_threshold;
-
+  uint32_t channel_number;
+  uint32_t high_threshold;
+  uint32_t low_threshold;
 } adc_analog_wdg;
 
 // @adc_channel_config
-typedef struct
+typedef struct adc_channel_config_t
 {
-  uint8_t channel_number;
-  uint8_t sequence_place;
+  uint32_t channel_number;
+  uint32_t sequence_place;
   adc_sample_time_t sample_time;
 } adc_channel_config_t;
 
 // @adc_config
-typedef struct
+typedef struct adc_config_t
 {
   bool scan_mode_en;
   bool cont_mode_en;
-  uint8_t number_of_conv;
+  uint32_t number_of_conv;
   adc_trigger_reg_t ext_trig_reg;
   adc_trigger_in_t ext_trig_inj;
   bool data_alignment_left;
@@ -102,13 +101,13 @@ typedef struct
 } adc_config_t;
 
 // @adc_handle
-typedef struct
+typedef struct adc_handle_t
 {
   ADC_TypeDef *p_ADCx;
 } adc_handle_t;
 
-void md_adc_init(adc_handle_t *p_hADCx, adc_config_t adc_config);
-void md_adc_init_channel(adc_handle_t *p_hADCx, adc_channel_config_t config);
+void md_adc_init_channel(adc_handle_t *p_hADCx, adc_channel_config_t *p_config);
+void md_adc_init(adc_handle_t *p_hADCx, adc_config_t *p_adc_config);
 uint16_t md_adc_single_conversion_polling(adc_handle_t *p_hADCx);
 
 #if MD_USING_ADC1

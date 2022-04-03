@@ -21,6 +21,7 @@
 #include "fonts.h"
 #include "string.h"
 #include "temt6000.h"
+#include "stdio.h"
 
 volatile bool send_can_msg;
 volatile uint8_t can_data_read = 1;
@@ -71,14 +72,14 @@ void example_can_init(void)
 
   // enter init mode
   md_can_change_op_mode(&hcan1, CAN_OPMODE_INIT, 1000);
-  md_can_init_basic(&hcan1, basic_init);
-  md_can_init_time_quanta(&hcan1, time_quanta);
+  md_can_init_basic(&hcan1, &basic_init);
+  md_can_init_time_quanta(&hcan1, &time_quanta);
   md_can_activate_irq(&hcan1, CAN_IRQ_GROUP_TX, CAN_IER_TMEIE, 30);
   md_can_activate_irq(&hcan1, CAN_IRQ_GROUP_RX0,
                       CAN_IER_FMPIE0 | CAN_IER_FFIE0 | CAN_IER_FOVIE0, 20);
   md_can_activate_irq(&hcan1, CAN_IRQ_GROUP_RX1,
                       CAN_IER_FMPIE1 | CAN_IER_FFIE1 | CAN_IER_FOVIE1, 20);
-  md_can_init_filter(&hcan1, can_filter);
+  md_can_init_filter(&hcan1, &can_filter);
   //  md_can_enter_test_mode(&hcan1, CAN_TESTMODE_LOOPBACK);
   //   exit init mode
   md_can_change_op_mode(&hcan1, CAN_OPMODE_NORMAL, 1000);
@@ -145,10 +146,10 @@ void example_can_send_data(void)
 
   // enter init mode
   md_can_change_op_mode(&hcan1, CAN_OPMODE_INIT, 1000);
-  md_can_init_basic(&hcan1, basic_init);
-  md_can_init_time_quanta(&hcan1, time_quanta);
+  md_can_init_basic(&hcan1, &basic_init);
+  md_can_init_time_quanta(&hcan1, &time_quanta);
   md_can_activate_irq(&hcan1, CAN_IRQ_GROUP_TX, CAN_IER_TMEIE, 30);
-  md_can_init_filter(&hcan1, can_filter);
+  md_can_init_filter(&hcan1, &can_filter);
   //   exit init mode
   md_can_change_op_mode(&hcan1, CAN_OPMODE_NORMAL, 1000);
 
@@ -165,7 +166,7 @@ void example_can_send_data(void)
   frame.remote = false;
   uint8_t data_buffer[8] = {0};
 
-  uint8_t mailbox_number;
+  uint32_t mailbox_number;
 
   uint32_t time_tick_adc = md_systick_get_tick();
   uint32_t time_tick_led = md_systick_get_tick();
@@ -192,7 +193,7 @@ void example_can_send_data(void)
 
       if (data_ready)
         {
-          md_can_write_mailbox(&hcan1, frame, &mailbox_number);
+          md_can_write_mailbox(&hcan1, &frame, &mailbox_number);
         }
     }
 }
@@ -243,9 +244,9 @@ void example_can_recieve_data(void)
 
   // enter init mode
   md_can_change_op_mode(&hcan1, CAN_OPMODE_INIT, 1000);
-  md_can_init_basic(&hcan1, basic_init);
-  md_can_init_time_quanta(&hcan1, time_quanta);
-  md_can_init_filter(&hcan1, can_filter);
+  md_can_init_basic(&hcan1, &basic_init);
+  md_can_init_time_quanta(&hcan1, &time_quanta);
+  md_can_init_filter(&hcan1, &can_filter);
   //   exit init mode
   md_can_change_op_mode(&hcan1, CAN_OPMODE_NORMAL, 1000);
 
@@ -265,7 +266,7 @@ void example_can_recieve_data(void)
   spi_config.prescaler = SPI_PRESCALER_2; // 100kHz
   spi_config.software_nss_management = true;
 
-  md_spi_init_basic(&hspi1, spi_config);
+  md_spi_init_basic(&hspi1, &spi_config);
 
   // init gpio for tft
   //  DC

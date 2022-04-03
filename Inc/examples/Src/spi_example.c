@@ -38,7 +38,7 @@ void example_spi_init_master_fullduplex(void)
   spi_config.prescaler = SPI_PRESCALER_32; // 100kHz
   spi_config.software_nss_management = true;
 
-  md_spi_init_basic(&hspi1, spi_config);
+  md_spi_init_basic(&hspi1, &spi_config);
 }
 
 void example_spi_transfer_message(void)
@@ -75,7 +75,7 @@ void example_spi_transfer_tft(void)
   spi_config.prescaler = SPI_PRESCALER_2; // 100kHz
   spi_config.software_nss_management = true;
 
-  md_spi_init_basic(&hspi1, spi_config);
+  md_spi_init_basic(&hspi1, &spi_config);
 
   // init gpio for tft
   //  DC

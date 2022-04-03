@@ -128,9 +128,10 @@ void md_usart_init_gpio(usart_handle_t *p_hUSARTx)
  */
 void md_usart_set_baud_rate(usart_handle_t *p_hUSARTx, uint32_t baud_rate)
 {
-  uint32_t pclk_freq;
-  uint32_t div_mantissa, div_fraction;
-  float f_div_fraction;
+  uint32_t pclk_freq = 0;
+  uint32_t div_mantissa = 0;
+  uint32_t div_fraction = 0;
+  float f_div_fraction = 0.0f;
 
   // get clock frequency
   if (p_hUSARTx->p_USARTx == USART1)
@@ -205,11 +206,11 @@ void md_usart_init_basic(usart_handle_t *p_hUSARTx,
  * @return - status @usart_status
  */
 usart_error_t md_usart_tx_polling(usart_handle_t *p_hUSARTx,
-                                  uint8_t *p_data_buffer, uint16_t lenght,
+                                  uint8_t *p_data_buffer, uint32_t lenght,
                                   uint32_t timeout_ms)
 {
-  uint16_t bytes_to_send = lenght;
-  uint32_t time_tick;
+  uint32_t bytes_to_send = lenght;
+  uint32_t time_tick = 0;
 
   // check if we are not doing anything else
   if (p_hUSARTx->usart_tx_status == USART_TX_IDLE)
@@ -274,9 +275,9 @@ usart_error_t md_usart_tx_polling(usart_handle_t *p_hUSARTx,
  * @return - status @usart_error
  */
 usart_error_t md_usart_tx_irq(usart_handle_t *p_hUSARTx, uint8_t *p_data_buffer,
-                              uint16_t lenght, uint32_t timeout_ms)
+                              uint32_t lenght, uint32_t timeout_ms)
 {
-  uint32_t time_tick;
+  uint32_t time_tick = 0;
   // check if we are not doing anything else
   if (p_hUSARTx->usart_tx_status == USART_TX_IDLE)
     {
@@ -328,7 +329,7 @@ usart_error_t md_usart_tx_irq(usart_handle_t *p_hUSARTx, uint8_t *p_data_buffer,
  * @param[prio] - priority
  * @return - void
  */
-void md_usart_enable_irq(usart_handle_t *p_hUSARTx, uint8_t prio)
+void md_usart_enable_irq(usart_handle_t *p_hUSARTx, uint32_t prio)
 {
   if (p_hUSARTx->p_USARTx == USART1)
     {

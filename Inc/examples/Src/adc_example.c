@@ -34,8 +34,8 @@ void example_adc_init(void)
   channel_config.sample_time = ADC_SAMPLE_TIME_2395;
   channel_config.sequence_place = 0;
 
-  md_adc_init(&hadc1, adc_config);
-  md_adc_init_channel(&hadc1, channel_config);
+  md_adc_init(&hadc1, &adc_config);
+  md_adc_init_channel(&hadc1, &channel_config);
 
 }
 
@@ -62,8 +62,8 @@ void example_adc_single_channel(void)
   channel_config.sample_time = ADC_SAMPLE_TIME_2395;
   channel_config.sequence_place = 0;
 
-  md_adc_init(&hadc1, adc_config);
-  md_adc_init_channel(&hadc1, channel_config);
+  md_adc_init(&hadc1, &adc_config);
+  md_adc_init_channel(&hadc1, &channel_config);
   uint32_t time_tick_led = md_systick_get_tick();
   while (1)
     {

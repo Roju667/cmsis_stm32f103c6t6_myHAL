@@ -183,7 +183,6 @@ void md_gpio_configure_exti(GPIO_TypeDef *p_GPIOx, gpio_pin_number_t pin_number,
 {
 
   md_gpio_init_af_clock();
-
   md_gpio_configure_input(p_GPIOx, pin_number, input_config);
 
   uint8_t code = GPIO_BASEADDR_TO_CODE(p_GPIOx);

@@ -75,7 +75,7 @@ can_error_t md_can_change_op_mode(can_handle_t *p_hCANx, can_op_mode_t op_mode,
 /*
  * init time quanta for can - function must be used in init mode
  * @param[*p_hCANx] - @can_handler
- * @param[quanta init] - init with values for time configuration
+ * @param[*p_quanta_init] - pointer to struct to init can time @can_quanta_init
  * presacler clock prescaler - 0-512
  * quanta_ts1 - number of quanta for time segement 1 MAX 16 quanta
  * @can_time_quanta quanta_ts2 - number of quanta for time segement 2 MAX 8
@@ -83,7 +83,7 @@ can_error_t md_can_change_op_mode(can_handle_t *p_hCANx, can_op_mode_t op_mode,
  * @return - can_error_t - can error status
  */
 can_error_t md_can_init_time_quanta(can_handle_t *p_hCANx,
-                                    can_quanta_init_t quanta_init)
+                                    can_quanta_init_t *p_quanta_init)
 {
   // check if init mode
   if (p_hCANx->op_mode != CAN_OPMODE_INIT)
@@ -92,14 +92,14 @@ can_error_t md_can_init_time_quanta(can_handle_t *p_hCANx,
     }
 
   // check if values are not exceeded
-  if (quanta_init.quanta_ts2 > CAN_TIME_QUANTA8 ||
-      quanta_init.quanta_sjw > CAN_TIME_QUANTA4)
+  if (p_quanta_init->quanta_ts2 > CAN_TIME_QUANTA8 ||
+      p_quanta_init->quanta_sjw > CAN_TIME_QUANTA4)
     {
       p_hCANx->can_error = CAN_ERR_INIT_QUANTA;
       return CAN_ERR_INIT_QUANTA;
     }
 
-  if (quanta_init.prescaler > 511 || quanta_init.prescaler < 1)
+  if (p_quanta_init->prescaler > 511 || p_quanta_init->prescaler < 1)
     {
       p_hCANx->can_error = CAN_ERR_INIT_BAUD;
       return CAN_ERR_INIT_BAUD;
@@ -111,10 +111,10 @@ can_error_t md_can_init_time_quanta(can_handle_t *p_hCANx,
   p_hCANx->p_CANx->BTR &= ~(CAN_BTR_SJW_Msk);
 
   // init prescaler and quantas
-  p_hCANx->p_CANx->BTR |= ((quanta_init.prescaler - 1) << CAN_BTR_BRP_Pos);
-  p_hCANx->p_CANx->BTR |= (quanta_init.quanta_ts1 << CAN_BTR_TS1_Pos);
-  p_hCANx->p_CANx->BTR |= (quanta_init.quanta_ts2 << CAN_BTR_TS2_Pos);
-  p_hCANx->p_CANx->BTR |= (quanta_init.quanta_sjw << CAN_BTR_SJW_Pos);
+  p_hCANx->p_CANx->BTR |= ((p_quanta_init->prescaler - 1) << CAN_BTR_BRP_Pos);
+  p_hCANx->p_CANx->BTR |= (p_quanta_init->quanta_ts1 << CAN_BTR_TS1_Pos);
+  p_hCANx->p_CANx->BTR |= (p_quanta_init->quanta_ts2 << CAN_BTR_TS2_Pos);
+  p_hCANx->p_CANx->BTR |= (p_quanta_init->quanta_sjw << CAN_BTR_SJW_Pos);
 
   p_hCANx->can_error = CAN_ERR_NOERR;
   return CAN_ERR_NOERR;
@@ -123,11 +123,11 @@ can_error_t md_can_init_time_quanta(can_handle_t *p_hCANx,
 /*
  * init basic configuration for can bus
  * @param[*p_hCANx] - @can_handler
- * @param[basic_init] - @can_basic_init
+ * @param[*p_basic_init] - pointer to can basic struct@can_basic_init
  * @return - can_error_t - can error status
  */
 can_error_t md_can_init_basic(can_handle_t *p_hCANx,
-                              can_basic_init_t basic_init)
+                              can_basic_init_t *p_basic_init)
 {
   // check if init mode
   if (p_hCANx->op_mode != CAN_OPMODE_INIT)
@@ -136,68 +136,20 @@ can_error_t md_can_init_basic(can_handle_t *p_hCANx,
     }
 
   // set or reset all the configuration flags
-  if (basic_init.debug_freeze == true)
-    {
-      SET_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_DBF);
-    }
-  else
-    {
-      CLEAR_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_DBF);
-    }
-
-  if (basic_init.time_triggered_comm == true)
-    {
-      SET_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_TTCM);
-    }
-  else
-    {
-      CLEAR_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_TTCM);
-    }
-
-  if (basic_init.auto_bus_off == true)
-    {
-      SET_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_ABOM);
-    }
-  else
-    {
-      CLEAR_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_ABOM);
-    }
-
-  if (basic_init.auto_wake_up == true)
-    {
-      SET_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_AWUM);
-    }
-  else
-    {
-      CLEAR_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_AWUM);
-    }
-
-  if (basic_init.auto_retransmit == true)
-    {
-      CLEAR_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_NART);
-    }
-  else
-    {
-      SET_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_NART);
-    }
-
-  if (basic_init.rx_fifo_lock == true)
-    {
-      SET_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_RFLM);
-    }
-  else
-    {
-      CLEAR_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_RFLM);
-    }
-
-  if (basic_init.tx_fifo_prio == true)
-    {
-      SET_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_TXFP);
-    }
-  else
-    {
-      CLEAR_BIT(p_hCANx->p_CANx->MCR, CAN_MCR_TXFP);
-    }
+  md_set_if_condition(p_basic_init->debug_freeze, &(p_hCANx->p_CANx->MCR),
+                      CAN_MCR_DBF);
+  md_set_if_condition(p_basic_init->time_triggered_comm, &(p_hCANx->p_CANx->MCR),
+                      CAN_MCR_TTCM);
+  md_set_if_condition(p_basic_init->auto_bus_off, &(p_hCANx->p_CANx->MCR),
+                      CAN_MCR_ABOM);
+  md_set_if_condition(p_basic_init->auto_wake_up, &(p_hCANx->p_CANx->MCR),
+                      CAN_MCR_AWUM);
+  md_set_if_condition(p_basic_init->rx_fifo_lock, &(p_hCANx->p_CANx->MCR),
+                      CAN_MCR_RFLM);
+  md_set_if_condition(p_basic_init->tx_fifo_prio, &(p_hCANx->p_CANx->MCR),
+                      CAN_MCR_TXFP);
+  md_clear_if_condition(p_basic_init->auto_retransmit, &(p_hCANx->p_CANx->MCR),
+                        CAN_MCR_NART);
 
   return CAN_ERR_NOERR;
 }
@@ -245,16 +197,15 @@ can_error_t md_can_enter_test_mode(can_handle_t *p_hCANx,
 /*
  * write mailbox
  * @param[*p_hCANx] - @can_handler
- * @param[frame] - frame structure @can_frame
+ * @param[*p_frame] - pointer to frame structure @can_frame
  * @param[p_mailbox_number] - pointer to variable that will hold mailbox number
  * that were used
  * @return - can_error_t - can error status
  */
-can_error_t md_can_write_mailbox(can_handle_t *p_hCANx, can_frame_t frame,
-
-                                 uint8_t *p_mailbox_number)
+can_error_t md_can_write_mailbox(can_handle_t *p_hCANx, can_frame_t *p_frame,
+                                 uint32_t *p_mailbox_number)
 {
-  uint8_t mailbox = can_get_empty_mailbox(p_hCANx);
+  uint32_t mailbox = can_get_empty_mailbox(p_hCANx);
 
   // check if there is an empty mailbox
   if (mailbox == CAN_MAILBOX_NOMAILBOX)
@@ -265,35 +216,35 @@ can_error_t md_can_write_mailbox(can_handle_t *p_hCANx, can_frame_t frame,
     }
 
   // check if maximum lenghts is not exceeded
-  if (frame.data_lenght > 8)
+  if (p_frame->data_lenght > 8)
     {
       p_hCANx->can_error = CAN_ERR_TX_DATA_EXCEEDED;
       return CAN_ERR_TX_DATA_EXCEEDED;
     }
 
   // write id and choose standard/extended
-  if (frame.id_extended == false)
+  if (p_frame->id_extended == false)
     {
       CLEAR_BIT(p_hCANx->p_CANx->sTxMailBox[mailbox].TIR, CAN_TI0R_IDE);
       p_hCANx->p_CANx->sTxMailBox[mailbox].TIR &= ~(CAN_TI0R_STID_Msk);
       p_hCANx->p_CANx->sTxMailBox[mailbox].TIR |=
-          ((frame.id & 0x07FF) << CAN_TI0R_STID_Pos);
+          ((p_frame->id & 0x07FF) << CAN_TI0R_STID_Pos);
     }
-  else if (frame.id_extended == true)
+  else if (p_frame->id_extended == true)
     {
       SET_BIT(p_hCANx->p_CANx->sTxMailBox[mailbox].TIR, CAN_TI0R_IDE);
       p_hCANx->p_CANx->sTxMailBox[mailbox].TIR &= ~(CAN_TI0R_EXID_Msk);
       p_hCANx->p_CANx->sTxMailBox[mailbox].TIR |=
-          ((frame.id & 0x1FFFFFFF) << CAN_TI0R_EXID_Pos);
+          ((p_frame->id & 0x1FFFFFFF) << CAN_TI0R_EXID_Pos);
     }
 
   // set data lenght
   p_hCANx->p_CANx->sTxMailBox[mailbox].TDTR &= ~(CAN_TDT0R_DLC_Msk);
   p_hCANx->p_CANx->sTxMailBox[mailbox].TDTR |=
-      (frame.data_lenght << CAN_TDT0R_DLC_Pos);
+      (p_frame->data_lenght << CAN_TDT0R_DLC_Pos);
 
   // prepare remote or data msg
-  if (frame.remote == true)
+  if (p_frame->remote == true)
     {
       SET_BIT(p_hCANx->p_CANx->sTxMailBox[mailbox].TIR, CAN_TI0R_RTR);
     }
@@ -305,17 +256,17 @@ can_error_t md_can_write_mailbox(can_handle_t *p_hCANx, can_frame_t frame,
       p_hCANx->p_CANx->sTxMailBox[mailbox].TDHR = 0;
 
       // write data to registers
-      for (uint8_t i = 0; i < frame.data_lenght; i++)
+      for (uint8_t i = 0; i < p_frame->data_lenght; i++)
         {
           if (i < 4)
             {
               p_hCANx->p_CANx->sTxMailBox[mailbox].TDLR |=
-                  (frame.p_data_buffer[i] << (i * 8));
+                  (p_frame->p_data_buffer[i] << (i * 8));
             }
           else
             {
               p_hCANx->p_CANx->sTxMailBox[mailbox].TDHR |=
-                  (frame.p_data_buffer[i] << ((i % 4) * 8));
+                  (p_frame->p_data_buffer[i] << ((i % 4) * 8));
             }
         }
     }
@@ -456,10 +407,10 @@ can_error_t md_can_read_fifo(can_handle_t *p_hCANx, can_frame_t *p_frame_buffer,
  * @param[filter] - filter struct
  * @return - can_error_t - can error status
  */
-can_error_t md_can_init_filter(can_handle_t *p_hCANx, can_filter_t filter)
+can_error_t md_can_init_filter(can_handle_t *p_hCANx, can_filter_t *p_filter)
 {
 
-  if (filter.filter_number > 13)
+  if (p_filter->filter_number > 13)
     {
       p_hCANx->can_error = CAN_ERR_FILTER_NO_TOO_HIGH;
       return CAN_ERR_FILTER_NO_TOO_HIGH;
@@ -468,46 +419,46 @@ can_error_t md_can_init_filter(can_handle_t *p_hCANx, can_filter_t filter)
   // start init filter mode
   SET_BIT(p_hCANx->p_CANx->FMR, CAN_FMR_FINIT);
   // deactivate filter for configuration
-  CLEAR_BIT(p_hCANx->p_CANx->FA1R, (0x01 << filter.filter_number));
+  CLEAR_BIT(p_hCANx->p_CANx->FA1R, (0x01 << p_filter->filter_number));
 
   // assign filter to fifo
-  if (filter.assign_to_fifo1 == true)
+  if (p_filter->assign_to_fifo1 == true)
     {
-      SET_BIT(p_hCANx->p_CANx->FFA1R, (0x01 << filter.filter_number));
+      SET_BIT(p_hCANx->p_CANx->FFA1R, (0x01 << p_filter->filter_number));
     }
   else
     {
-      CLEAR_BIT(p_hCANx->p_CANx->FFA1R, (0x01 << filter.filter_number));
+      CLEAR_BIT(p_hCANx->p_CANx->FFA1R, (0x01 << p_filter->filter_number));
     }
 
   // select scale 16 bit (for standard) 32 bit (for extended id)
-  if (filter.scale_32bit == true)
+  if (p_filter->scale_32bit == true)
     {
-      SET_BIT(p_hCANx->p_CANx->FS1R, (0x01 << filter.filter_number));
+      SET_BIT(p_hCANx->p_CANx->FS1R, (0x01 << p_filter->filter_number));
     }
   else
     {
-      CLEAR_BIT(p_hCANx->p_CANx->FS1R, (0x01 << filter.filter_number));
+      CLEAR_BIT(p_hCANx->p_CANx->FS1R, (0x01 << p_filter->filter_number));
     }
 
   // select mode
-  if (filter.list_mode == true)
+  if (p_filter->list_mode == true)
     {
-      SET_BIT(p_hCANx->p_CANx->FS1R, (0x01 << filter.filter_number));
+      SET_BIT(p_hCANx->p_CANx->FS1R, (0x01 << p_filter->filter_number));
     }
   else
     {
-      CLEAR_BIT(p_hCANx->p_CANx->FS1R, (0x01 << filter.filter_number));
+      CLEAR_BIT(p_hCANx->p_CANx->FS1R, (0x01 << p_filter->filter_number));
     }
 
   // fill value registers
-  p_hCANx->p_CANx->sFilterRegister[filter.filter_number].FR1 =
-      filter.filter_id0;
-  p_hCANx->p_CANx->sFilterRegister[filter.filter_number].FR2 =
-      filter.filter_mask_or_id1;
+  p_hCANx->p_CANx->sFilterRegister[p_filter->filter_number].FR1 =
+      p_filter->filter_id0;
+  p_hCANx->p_CANx->sFilterRegister[p_filter->filter_number].FR2 =
+      p_filter->filter_mask_or_id1;
 
   // activate filter
-  SET_BIT(p_hCANx->p_CANx->FA1R, (0x01 << filter.filter_number));
+  SET_BIT(p_hCANx->p_CANx->FA1R, (0x01 << p_filter->filter_number));
   // stop filter init mode
   CLEAR_BIT(p_hCANx->p_CANx->FMR, CAN_FMR_FINIT);
 

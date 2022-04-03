@@ -28,4 +28,19 @@ static inline void md_set_if_condition(bool condition,volatile uint32_t *reg,
     }
 }
 
+static inline void md_clear_if_condition(bool condition,volatile uint32_t *reg,
+                                     uint32_t bit)
+{
+  if (condition == false)
+    {
+      // set
+      *reg |= bit;
+    }
+  else
+    {
+      // reset
+      *reg &= ~(bit);
+    }
+}
+
 #endif /* MYDRIVERS_INC_STM32F103XX_MYDRIVER_H_ */

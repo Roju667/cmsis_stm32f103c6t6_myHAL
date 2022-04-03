@@ -22,36 +22,36 @@
 #ifdef MD_ENABLE_SPI
 
 // @spi_error
-typedef enum
+typedef enum spi_error_t
 {
-  SPI_ERR_NOERR,
-  SPI_ERR_TX_COLLISION,
+  SPI_ERR_NOERR = 0,
+  SPI_ERR_TX_COLLISION = -100,
   SPI_ERR_TIMEOUT_TXE
 
 } spi_error_t;
 
 // @spi_tx_status
-typedef enum
+typedef enum spi_tx_status_t
 {
-  SPI_TX_IDLE,
+  SPI_TX_IDLE = 0,
   SPI_TX_POLLING,
   SPI_TX_IRQ,
   SPI_TX_DMA
 } spi_tx_status_t;
 
 // @spi_rx_status
-typedef enum
+typedef enum spi_rx_status_t
 {
-  SPI_RX_IDLE,
+  SPI_RX_IDLE = 0,
   SPIRX_POLLING,
   SPI_RX_IRQ,
   SPI_RX_DMA
 } spi_rx_status_t;
 
 // @spi_prescaler
-typedef enum
+typedef enum spi_prescaler_t
 {
-  SPI_PRESCALER_2,
+  SPI_PRESCALER_2 = 0,
   SPI_PRESCALER_4,
   SPI_PRESCALER_8,
   SPI_PRESCALER_16,
@@ -78,8 +78,8 @@ typedef struct
 typedef struct
 {
   SPI_TypeDef *p_SPIx;
-  uint16_t tx_buffer_len;
-  uint16_t tx_buffer_count;
+  uint32_t tx_buffer_len;
+  uint32_t tx_buffer_count;
   uint8_t *p_tx_buffer;
   spi_error_t spi_error;
   spi_tx_status_t spi_tx_status;
@@ -89,11 +89,11 @@ typedef struct
 
 // init functions
 void md_spi_init(spi_handle_t *p_hSPIx);
-void md_spi_init_basic(spi_handle_t *p_hSPIx, spi_config_t spi_config);
+void md_spi_init_basic(spi_handle_t *p_hSPIx, spi_config_t *p_spi_config);
 
 // transmit
 spi_error_t md_spi_tx_polling(spi_handle_t *p_hSPIx, uint8_t *p_data_buffer,
-                              uint16_t data_lenght, uint32_t timeout_ms);
+                              uint32_t data_lenght, uint32_t timeout_ms);
 
 #if MD_USING_SPI1
 extern spi_handle_t hspi1;
