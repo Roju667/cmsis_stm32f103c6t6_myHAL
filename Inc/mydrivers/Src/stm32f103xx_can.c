@@ -14,7 +14,7 @@
 #ifdef MD_ENABLE_CAN
 
 #if MD_USING_CAN1
-can_handle_t hcan1;
+can_handle_t hcan1 = {.p_CANx = CAN1,.can_error = CAN_ERR_NOERR,.op_mode = CAN_OPMODE_SLEEP};
 #endif // MD_USING_CAN1
 
 static can_error_t can_enter_init_mode(can_handle_t *p_hCANx,
@@ -24,7 +24,6 @@ static can_error_t can_enter_normal_mode(can_handle_t *p_hCANx,
 static can_error_t can_enter_sleep_mode(can_handle_t *p_hCANx,
                                         uint32_t timeout_ms);
 static can_mailbox_t can_get_empty_mailbox(can_handle_t *p_hCANx);
-static void can_init_handlers(void);
 static void can_init_clock(can_handle_t *p_hCANx);
 static void can_init_gpio(can_handle_t *p_hCANx);
 static void can_main_rx0_callback(void);
@@ -38,7 +37,6 @@ static void can_main_sce_callback(void);
  */
 void md_can_init(can_handle_t *p_hCANx)
 {
-  can_init_handlers();
   can_init_clock(p_hCANx);
   can_init_gpio(p_hCANx);
 }
@@ -682,17 +680,6 @@ static can_mailbox_t can_get_empty_mailbox(can_handle_t *p_hCANx)
     }
 }
 
-/*
- * Init handler structures
- * @param[void]
- * @return - void
- */
-static void can_init_handlers(void)
-{
-  hcan1.p_CANx = CAN1;
-  hcan1.can_error = CAN_ERR_NOERR;
-  hcan1.op_mode = CAN_OPMODE_SLEEP;
-}
 
 /*
  * Starts clock for CAN and resets the peripheral

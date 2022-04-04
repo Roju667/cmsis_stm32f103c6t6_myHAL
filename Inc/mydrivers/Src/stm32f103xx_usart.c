@@ -16,38 +16,27 @@
 #ifdef MD_ENABLE_USART
 
 #if MD_USING_USART1
-usart_handle_t husart1;
+usart_handle_t husart1 = {
+		  .p_USARTx = USART1,
+		  .usart_error = USART_ERR_NOERR,
+		  .tx_buffer_count = 0,
+		  .tx_buffer_len = 0,
+		  .usart_rx_status = USART_RX_IDLE,
+		  .usart_tx_status = USART_TX_IDLE,
+};
 #endif // MD_USING_USART1
 
 #if MD_USING_USART2
-usart_handle_t husart2;
+usart_handle_t husart2 = {
+		  .p_USARTx = USART2,
+		  .usart_error = USART_ERR_NOERR,
+		  .tx_buffer_count = 0,
+		  .tx_buffer_len = 0,
+		  .usart_rx_status = USART_RX_IDLE,
+		  .usart_tx_status = USART_TX_IDLE,
+};
 #endif // MD_USING_USART2
 
-/*
- * Init handler structures
- * @param[void]
- * @return - void
- */
-void md_usart_init_handlers(void)
-{
-#if MD_USING_USART1
-  husart1.p_USARTx = USART1;
-  husart1.usart_error = USART_ERR_NOERR;
-  husart1.tx_buffer_count = 0;
-  husart1.tx_buffer_len = 0;
-  husart1.usart_rx_status = USART_RX_IDLE;
-  husart1.usart_tx_status = USART_TX_IDLE;
-#endif // MD_USING_USART1
-
-#if MD_USING_USART2
-  husart2.p_USARTx = USART2;
-  husart2.usart_error = USART_ERR_NOERR;
-  husart2.tx_buffer_count = 0;
-  husart2.tx_buffer_len = 0;
-  husart2.usart_rx_status = USART_RX_IDLE;
-  husart2.usart_tx_status = USART_TX_IDLE;
-#endif // MD_USING_USART2
-}
 
 /*
  * Starts clock for USART and resets the peripheral

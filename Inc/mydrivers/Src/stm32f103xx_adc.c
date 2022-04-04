@@ -15,10 +15,9 @@
 #ifdef MD_ENABLE_ADC
 
 #if MD_USING_ADC1
-adc_handle_t hadc1;
+adc_handle_t hadc1 ={.p_ADCx = ADC1};
 #endif // MD_USING_ADC1
 
-static void adc_init_handlers(void);
 static void adc_init_clock(adc_handle_t *p_hADCx);
 static void adc_init_gpio(adc_handle_t *p_hADCx, uint8_t adc_channel);
 
@@ -30,8 +29,7 @@ static void adc_init_gpio(adc_handle_t *p_hADCx, uint8_t adc_channel);
  */
 void md_adc_init(adc_handle_t *p_hADCx, adc_config_t *p_adc_config)
 {
-  // init handler and clock
-  adc_init_handlers();
+
   adc_init_clock(p_hADCx);
 
   // scan mode
@@ -169,17 +167,6 @@ uint16_t md_adc_single_conversion_polling(adc_handle_t *p_hADCx)
   return adc_value;
 }
 
-/*
- * Init handler structures
- * @param[void]
- * @return - void
- */
-static void adc_init_handlers(void)
-{
-#if MD_USING_ADC1
-  hadc1.p_ADCx = ADC1;
-#endif // MD_USING_ADC1
-}
 
 /*
  * Starts clock for ADC and resets the peripheral

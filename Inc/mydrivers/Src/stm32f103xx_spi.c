@@ -15,10 +15,14 @@
 #ifdef MD_ENABLE_SPI
 
 #if MD_USING_SPI1
-spi_handle_t hspi1;
+spi_handle_t hspi1 = {.p_SPIx = SPI1,
+                      .p_tx_buffer = NULL,
+                      .tx_buffer_count = 0,
+                      .spi_error = SPI_ERR_NOERR,
+                      .spi_rx_status = SPI_RX_IDLE,
+                      .spi_tx_status = SPI_TX_IDLE};
 #endif // MD_USING_SPI1
 
-static void spi_init_handlers(void);
 static void spi_init_clock(spi_handle_t *p_hSPIx);
 static void spi_init_gpio(spi_handle_t *p_hSPIx, spi_config_t *p_spi_config);
 
@@ -27,11 +31,7 @@ static void spi_init_gpio(spi_handle_t *p_hSPIx, spi_config_t *p_spi_config);
  * @param[*p_hSPIx] - can struct handler @spi_handler
  * @return - void
  */
-void md_spi_init(spi_handle_t *p_hSPIx)
-{
-  spi_init_handlers();
-  spi_init_clock(p_hSPIx);
-}
+void md_spi_init(spi_handle_t *p_hSPIx) { spi_init_clock(p_hSPIx); }
 /*
  * Spi - init basic parameters
  * @param[*p_hSPIx] - spix base address @spi_handler
@@ -44,16 +44,16 @@ void md_spi_init_basic(spi_handle_t *p_hSPIx, spi_config_t *p_spi_config)
   spi_init_gpio(p_hSPIx, p_spi_config);
 
   // clock phase
-  md_set_if_condition(p_spi_config->clock_second_edge_capture, &(p_hSPIx->p_SPIx->CR1),
-		  SPI_CR1_CPHA);
+  md_set_if_condition(p_spi_config->clock_second_edge_capture,
+                      &(p_hSPIx->p_SPIx->CR1), SPI_CR1_CPHA);
 
   // clock polarity
-  md_set_if_condition(p_spi_config->clock_second_edge_capture, &(p_hSPIx->p_SPIx->CR1),
-		  SPI_CR1_CPOL);
+  md_set_if_condition(p_spi_config->clock_second_edge_capture,
+                      &(p_hSPIx->p_SPIx->CR1), SPI_CR1_CPOL);
 
   // data format
   md_set_if_condition(p_spi_config->data_format_16bit, &(p_hSPIx->p_SPIx->CR1),
-		  SPI_CR1_DFF);
+                      SPI_CR1_DFF);
 
   // full duplex
   if (p_spi_config->full_duplex == true)
@@ -68,7 +68,7 @@ void md_spi_init_basic(spi_handle_t *p_hSPIx, spi_config_t *p_spi_config)
 
   // lsb/msb first
   md_set_if_condition(p_spi_config->lsb_first, &(p_hSPIx->p_SPIx->CR1),
-		  SPI_CR1_LSBFIRST);
+                      SPI_CR1_LSBFIRST);
 
   // nss manangement
   if (p_spi_config->software_nss_management)
@@ -83,8 +83,7 @@ void md_spi_init_basic(spi_handle_t *p_hSPIx, spi_config_t *p_spi_config)
 
   // master mode
   md_set_if_condition(p_spi_config->master_mode, &(p_hSPIx->p_SPIx->CR1),
-		  SPI_CR1_MSTR);
-
+                      SPI_CR1_MSTR);
 
   // prescaler
   p_hSPIx->p_SPIx->CR1 &= ~(SPI_CR1_BR_Msk);
@@ -104,7 +103,7 @@ void md_spi_init_basic(spi_handle_t *p_hSPIx, spi_config_t *p_spi_config)
  * @return - void
  */
 spi_error_t md_spi_tx_polling(spi_handle_t *p_hSPIx, uint8_t *p_data_buffer,
-		uint32_t data_lenght, uint32_t timeout_ms)
+                              uint32_t data_lenght, uint32_t timeout_ms)
 {
   uint32_t time_tick = 0;
   uint32_t data_counter = data_lenght;
@@ -148,22 +147,6 @@ spi_error_t md_spi_tx_polling(spi_handle_t *p_hSPIx, uint8_t *p_data_buffer,
   p_hSPIx->spi_error = SPI_ERR_TIMEOUT_TXE;
   p_hSPIx->spi_tx_status = SPI_TX_IDLE;
   return SPI_ERR_NOERR;
-}
-/*
- * Init handler structures
- * @param[void]
- * @return - void
- */
-static void spi_init_handlers(void)
-{
-#if MD_USING_SPI1
-  hspi1.p_SPIx = SPI1;
-  hspi1.p_tx_buffer = NULL;
-  hspi1.tx_buffer_count = 0;
-  hspi1.spi_error = SPI_ERR_NOERR;
-  hspi1.spi_rx_status = SPI_RX_IDLE;
-  hspi1.spi_tx_status = SPI_TX_IDLE;
-#endif // MD_USING_SPI1
 }
 
 /*
